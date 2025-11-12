@@ -14,7 +14,202 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      disciplinas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      empreendimentos: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      obras: {
+        Row: {
+          created_at: string
+          empreendimento_id: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empreendimento_id: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empreendimento_id?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obras_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projetistas: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      revisoes: {
+        Row: {
+          created_at: string
+          data_analise: string | null
+          data_entrega: string
+          data_envio: string | null
+          disciplina_id: string
+          empreendimento_id: string
+          id: string
+          justificativa: string
+          numero_revisao: string
+          obra_id: string
+          projetista_id: string
+          status_analise: Database["public"]["Enums"]["status_analise"]
+          status_entrega: Database["public"]["Enums"]["status_entrega"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_analise?: string | null
+          data_entrega: string
+          data_envio?: string | null
+          disciplina_id: string
+          empreendimento_id: string
+          id?: string
+          justificativa: string
+          numero_revisao: string
+          obra_id: string
+          projetista_id: string
+          status_analise?: Database["public"]["Enums"]["status_analise"]
+          status_entrega?: Database["public"]["Enums"]["status_entrega"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_analise?: string | null
+          data_entrega?: string
+          data_envio?: string | null
+          disciplina_id?: string
+          empreendimento_id?: string
+          id?: string
+          justificativa?: string
+          numero_revisao?: string
+          obra_id?: string
+          projetista_id?: string
+          status_analise?: Database["public"]["Enums"]["status_analise"]
+          status_entrega?: Database["public"]["Enums"]["status_entrega"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revisoes_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revisoes_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revisoes_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revisoes_projetista_id_fkey"
+            columns: ["projetista_id"]
+            isOneToOne: false
+            referencedRelation: "projetistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +218,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      status_analise: "no-prazo" | "atrasado" | "pendente"
+      status_entrega: "no-prazo" | "atrasado" | "pendente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +346,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      status_analise: ["no-prazo", "atrasado", "pendente"],
+      status_entrega: ["no-prazo", "atrasado", "pendente"],
+    },
   },
 } as const
