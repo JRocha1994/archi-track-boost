@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calcularStatusEntrega, calcularStatusAnalise } from '@/lib/statusCalculator';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
@@ -80,6 +80,38 @@ export function RevisoesTable({
   const handleDelete = (id: string) => {
     setRevisoes(revisoes.filter(r => r.id !== id));
     toast({ title: 'Revisão excluída' });
+  };
+
+  const handleDuplicate = (revisao: Revisao) => {
+    // Encontrar todas as revisões do mesmo projeto/obra/disciplina/projetista
+    const revisoesRelacionadas = revisoes.filter(
+      r => r.empreendimentoId === revisao.empreendimentoId &&
+           r.obraId === revisao.obraId &&
+           r.disciplinaId === revisao.disciplinaId &&
+           r.projetistaId === revisao.projetistaId
+    );
+
+    // Extrair números das revisões e encontrar o maior
+    const numerosRevisao = revisoesRelacionadas.map(r => {
+      const match = r.numeroRevisao.match(/\d+/);
+      return match ? parseInt(match[0]) : 0;
+    });
+    const maiorNumero = Math.max(...numerosRevisao, 0);
+    const novoNumero = maiorNumero + 1;
+
+    setNewRow({
+      empreendimentoId: revisao.empreendimentoId,
+      obraId: revisao.obraId,
+      disciplinaId: revisao.disciplinaId,
+      projetistaId: revisao.projetistaId,
+      numeroRevisao: `R${novoNumero.toString().padStart(2, '0')}`,
+      dataEntrega: '',
+      dataEnvio: '',
+      dataAnalise: '',
+      justificativa: '',
+    });
+
+    toast({ title: 'Nova revisão criada a partir da anterior' });
   };
 
   const obrasFiltered = (empId: string) => obras.filter(o => o.empreendimentoId === empId);
@@ -245,9 +277,26 @@ export function RevisoesTable({
                 <TableCell><StatusBadge status={revisao.statusAnalise} type="analise" /></TableCell>
                 <TableCell className="max-w-xs truncate">{revisao.justificativa}</TableCell>
                 <TableCell>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDelete(revisao.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8" 
+                      onClick={() => handleDuplicate(revisao)}
+                      title="Duplicar revisão"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-8 w-8" 
+                      onClick={() => handleDelete(revisao.id)}
+                      title="Excluir revisão"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
