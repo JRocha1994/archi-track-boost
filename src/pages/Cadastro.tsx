@@ -86,7 +86,7 @@ export default function Cadastro() {
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/5w-logo.png" 
+                src="/favicon.ico" 
                 alt="5W Consulting" 
                 className="h-16 w-auto"
               />
