@@ -75,6 +75,7 @@ export default function Configuracoes() {
       const base64String = reader.result as string;
       setCompanyLogo(base64String);
       localStorage.setItem('company_logo', base64String);
+      window.dispatchEvent(new Event('company_logo_updated'));
       setIsUploading(false);
       toast({
         title: 'Logo atualizada com sucesso!',
@@ -94,6 +95,7 @@ export default function Configuracoes() {
   const handleRemoveLogo = () => {
     setCompanyLogo(null);
     localStorage.removeItem('company_logo');
+    window.dispatchEvent(new Event('company_logo_updated'));
     toast({
       title: 'Logo removida com sucesso!',
     });

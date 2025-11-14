@@ -1,4 +1,6 @@
-import { useRevisoes, useEmpreendimentos, useObras, useDisciplinas, useProjetistas } from '@/hooks/useData';
+import { useEffect, useState } from 'react';
+import type { Empreendimento, Obra, Disciplina, Projetista, Revisao } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Building2, FileText, Layers, Users, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
@@ -12,11 +14,96 @@ const COLORS = {
 const STATUS_COLORS = ['#22c55e', '#ef4444', '#f59e0b'];
 
 export default function Indicadores() {
-  const [revisoes] = useRevisoes();
-  const [empreendimentos] = useEmpreendimentos();
-  const [obras] = useObras();
-  const [disciplinas] = useDisciplinas();
-  const [projetistas] = useProjetistas();
+  const [revisoes, setRevisoes] = useState<Revisao[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [projetistas, setProjetistas] = useState<Projetista[]>([]);
+
+  useEffect(() => {
+    const loadAll = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) {
+          setEmpreendimentos([]);
+          setObras([]);
+          setDisciplinas([]);
+          setProjetistas([]);
+          setRevisoes([]);
+          return;
+        }
+
+        const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
+          supabase.from('empreendimentos').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+          supabase.from('obras').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+          supabase.from('disciplinas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+          supabase.from('projetistas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+          supabase.from('revisoes').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+        ]);
+
+        if (empRes.error) throw empRes.error;
+        if (obrasRes.error) throw obrasRes.error;
+        if (discRes.error) throw discRes.error;
+        if (projRes.error) throw projRes.error;
+        if (revRes.error) throw revRes.error;
+
+        const mappedEmp: Empreendimento[] = (empRes.data || []).map((item: any) => ({
+          id: item.id,
+          nome: item.nome,
+          createdAt: item.created_at,
+        }));
+
+        const mappedObras: Obra[] = (obrasRes.data || []).map((item: any) => ({
+          id: item.id,
+          nome: item.nome,
+          empreendimentoId: item.empreendimento_id,
+          createdAt: item.created_at,
+        }));
+
+        const mappedDisc: Disciplina[] = (discRes.data || []).map((item: any) => ({
+          id: item.id,
+          nome: item.nome,
+          createdAt: item.created_at,
+        }));
+
+        const mappedProj: Projetista[] = (projRes.data || []).map((item: any) => ({
+          id: item.id,
+          nome: item.nome,
+          email: item.email || undefined,
+          telefone: item.telefone || undefined,
+          createdAt: item.created_at,
+        }));
+
+        const mappedRev: Revisao[] = (revRes.data || []).map((item: any) => ({
+          id: item.id,
+          empreendimentoId: item.empreendimento_id,
+          obraId: item.obra_id,
+          disciplinaId: item.disciplina_id,
+          projetistaId: item.projetista_id,
+          numeroRevisao: item.numero_revisao,
+          dataPrevistaEntrega: item.data_prevista_entrega,
+          dataEntrega: item.data_entrega || undefined,
+          dataPrevistaAnalise: item.data_prevista_analise || undefined,
+          dataAnalise: item.data_analise || undefined,
+          justificativa: item.justificativa,
+          statusEntrega: item.status_entrega,
+          statusAnalise: item.status_analise,
+          createdAt: item.created_at,
+        }));
+
+        setEmpreendimentos(mappedEmp);
+        setObras(mappedObras);
+        setDisciplinas(mappedDisc);
+        setProjetistas(mappedProj);
+        setRevisoes(mappedRev);
+      } catch (err) {
+        console.error('Erro ao carregar dados dos indicadores:', err);
+      }
+    };
+
+    loadAll();
+  }, []);
 
   // Qtd de revisões por Empreendimento, Obra e Disciplina
   const revisoesPorEmpreendimento = empreendimentos.map(emp => ({

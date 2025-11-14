@@ -23,10 +23,33 @@ export function Layout() {
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedLogo = localStorage.getItem('company_logo');
-    if (savedLogo) {
-      setCompanyLogo(savedLogo);
-    }
+    const refreshLogo = () => {
+      const savedLogo = localStorage.getItem('company_logo');
+      setCompanyLogo(savedLogo || null);
+    };
+
+    // Inicializa ao montar/navegar
+    refreshLogo();
+
+    // Atualiza quando localStorage mudar em outras abas
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'company_logo') {
+        refreshLogo();
+      }
+    };
+
+    // Atualiza imediatamente nesta mesma aba após upload/remover
+    const handleCustom = () => {
+      refreshLogo();
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('company_logo_updated' as any, handleCustom);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('company_logo_updated' as any, handleCustom);
+    };
   }, [location]);
 
   const NavLinks = ({ collapsed = false }: { collapsed?: boolean }) => (
