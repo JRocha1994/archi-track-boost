@@ -131,13 +131,14 @@ export type Database = {
         Row: {
           created_at: string
           data_analise: string | null
-          data_entrega: string
-          data_envio: string | null
+          data_entrega: string | null
+          data_prevista_analise: string | null
+          data_prevista_entrega: string
           disciplina_id: string
           empreendimento_id: string
           id: string
           justificativa: string
-          numero_revisao: string
+          numero_revisao: number
           obra_id: string
           projetista_id: string
           status_analise: Database["public"]["Enums"]["status_analise"]
@@ -148,13 +149,14 @@ export type Database = {
         Insert: {
           created_at?: string
           data_analise?: string | null
-          data_entrega: string
-          data_envio?: string | null
+          data_entrega?: string | null
+          data_prevista_analise?: string | null
+          data_prevista_entrega: string
           disciplina_id: string
           empreendimento_id: string
           id?: string
           justificativa: string
-          numero_revisao: string
+          numero_revisao: number
           obra_id: string
           projetista_id: string
           status_analise?: Database["public"]["Enums"]["status_analise"]
@@ -165,13 +167,14 @@ export type Database = {
         Update: {
           created_at?: string
           data_analise?: string | null
-          data_entrega?: string
-          data_envio?: string | null
+          data_entrega?: string | null
+          data_prevista_analise?: string | null
+          data_prevista_entrega?: string
           disciplina_id?: string
           empreendimento_id?: string
           id?: string
           justificativa?: string
-          numero_revisao?: string
+          numero_revisao?: number
           obra_id?: string
           projetista_id?: string
           status_analise?: Database["public"]["Enums"]["status_analise"]

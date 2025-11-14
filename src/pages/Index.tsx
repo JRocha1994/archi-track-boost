@@ -1,17 +1,134 @@
-import { useState } from 'react';
-import { useRevisoes, useEmpreendimentos, useObras, useDisciplinas, useProjetistas } from '@/hooks/useData';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RevisoesTable } from '@/components/revisoes/RevisoesTable';
 import { RevisaoForm } from '@/components/revisoes/RevisaoForm';
 import { ImportacaoXLSX } from '@/components/revisoes/ImportacaoXLSX';
+import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Index() {
-  const [revisoes, setRevisoes] = useRevisoes();
-  const [empreendimentos] = useEmpreendimentos();
-  const [obras] = useObras();
-  const [disciplinas] = useDisciplinas();
-  const [projetistas] = useProjetistas();
+  const [revisoes, setRevisoes] = useState<Revisao[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [projetistas, setProjetistas] = useState<Projetista[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setRevisoes([]);
+        setEmpreendimentos([]);
+        setObras([]);
+        setDisciplinas([]);
+        setProjetistas([]);
+        return;
+      }
+
+      const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
+        supabase
+          .from('empreendimentos')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('obras')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('disciplinas')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('projetistas')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('revisoes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true }),
+      ]);
+
+      if (empRes.error) throw empRes.error;
+      if (obrasRes.error) throw obrasRes.error;
+      if (discRes.error) throw discRes.error;
+      if (projRes.error) throw projRes.error;
+      if (revRes.error) throw revRes.error;
+
+      const empreendimentosMapped: Empreendimento[] = (empRes.data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        createdAt: item.created_at,
+      }));
+
+      const obrasMapped: Obra[] = (obrasRes.data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        empreendimentoId: item.empreendimento_id,
+        createdAt: item.created_at,
+      }));
+
+      const disciplinasMapped: Disciplina[] = (discRes.data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        createdAt: item.created_at,
+      }));
+
+      const projetistasMapped: Projetista[] = (projRes.data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        email: item.email || undefined,
+        telefone: item.telefone || undefined,
+        createdAt: item.created_at,
+      }));
+
+      const revisoesMapped: Revisao[] = (revRes.data || []).map((item) => ({
+        id: item.id,
+        empreendimentoId: item.empreendimento_id,
+        obraId: item.obra_id,
+        disciplinaId: item.disciplina_id,
+        projetistaId: item.projetista_id,
+        numeroRevisao: item.numero_revisao,
+        dataPrevistaEntrega: item.data_prevista_entrega,
+        dataEntrega: item.data_entrega || undefined,
+        dataPrevistaAnalise: item.data_prevista_analise || undefined,
+        dataAnalise: item.data_analise || undefined,
+        justificativa: item.justificativa,
+        statusEntrega: item.status_entrega,
+        statusAnalise: item.status_analise,
+        createdAt: item.created_at,
+      }));
+
+      setEmpreendimentos(empreendimentosMapped);
+      setObras(obrasMapped);
+      setDisciplinas(disciplinasMapped);
+      setProjetistas(projetistasMapped);
+      setRevisoes(revisoesMapped);
+    } catch (error: any) {
+      console.error('Erro ao carregar dados das revisões:', error);
+      toast({
+        title: 'Erro ao carregar dados',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">

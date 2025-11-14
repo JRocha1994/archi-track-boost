@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { calcularStatusEntrega, calcularStatusAnalise } from '@/lib/statusCalculator';
+import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import * as XLSX from 'xlsx';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
 
@@ -33,9 +33,9 @@ export function ImportacaoXLSX({
         Obra: 'Nome da Obra',
         Disciplina: 'Nome da Disciplina',
         Projetista: 'Nome do Projetista',
-        'Número da Revisão': 'R01',
-        'Data de Entrega': '2025-01-15',
-        'Data de Envio': '2025-01-14',
+        'Número da Revisão': 1,
+        'Dt. Prevista Entrega': '2025-01-15',
+        'Dt. de Entrega': '2025-01-14',
         'Data de Análise': '2025-01-20',
         Justificativa: 'Ajustes solicitados pelo cliente',
       },
@@ -75,18 +75,38 @@ export function ImportacaoXLSX({
         const disciplinaId = findIdByName(row.Disciplina, disciplinas);
         const projetistaId = findIdByName(row.Projetista, projetistas);
 
-        if (!empreendimentoId || !obraId || !disciplinaId || !projetistaId) {
-          errors.push(`Linha ${index + 2}: Entidade não encontrada`);
+        // Validar cada entidade individualmente
+        if (!empreendimentoId) {
+          errors.push(`Linha ${index + 2}: Empreendimento "${row.Empreendimento}" não encontrado`);
+          return;
+        }
+        if (!obraId) {
+          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não encontrada`);
+          return;
+        }
+        if (!disciplinaId) {
+          errors.push(`Linha ${index + 2}: Disciplina "${row.Disciplina}" não encontrada`);
+          return;
+        }
+        if (!projetistaId) {
+          errors.push(`Linha ${index + 2}: Projetista "${row.Projetista}" não encontrado`);
           return;
         }
 
-        if (!row['Número da Revisão'] || !row['Data de Entrega'] || !row.Justificativa) {
+        if (!row['Número da Revisão'] || !row['Dt. Prevista Entrega'] || !row.Justificativa) {
           errors.push(`Linha ${index + 2}: Campos obrigatórios faltando`);
           return;
         }
 
-        const statusEntrega = calcularStatusEntrega(row['Data de Entrega'], row['Data de Envio']);
-        const statusAnalise = calcularStatusAnalise(row['Data de Envio'], row['Data de Análise']);
+        const numeroRevisao = parseInt(row['Número da Revisão']);
+        if (isNaN(numeroRevisao)) {
+          errors.push(`Linha ${index + 2}: Número da revisão deve ser um inteiro válido`);
+          return;
+        }
+
+        const dataPrevistaAnalise = calcularDataPrevistaAnalise(row['Dt. de Entrega']);
+        const statusEntrega = calcularStatusEntrega(row['Dt. Prevista Entrega'], row['Dt. de Entrega']);
+        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, row['Data de Análise']);
 
         newRevisoes.push({
           id: crypto.randomUUID(),
@@ -94,9 +114,10 @@ export function ImportacaoXLSX({
           obraId,
           disciplinaId,
           projetistaId,
-          numeroRevisao: row['Número da Revisão'],
-          dataEntrega: row['Data de Entrega'],
-          dataEnvio: row['Data de Envio'] || undefined,
+          numeroRevisao,
+          dataPrevistaEntrega: row['Dt. Prevista Entrega'],
+          dataEntrega: row['Dt. de Entrega'] || undefined,
+          dataPrevistaAnalise,
           dataAnalise: row['Data de Análise'] || undefined,
           justificativa: row.Justificativa,
           statusEntrega,
@@ -109,12 +130,20 @@ export function ImportacaoXLSX({
         setRevisoes((prev) => [...prev, ...newRevisoes]);
         toast({ 
           title: `${newRevisoes.length} revisão(ões) importada(s) com sucesso`,
-          description: errors.length > 0 ? `${errors.length} linha(s) com erro` : undefined,
+          description: errors.length > 0 ? `${errors.length} linha(s) com erro. Verifique o console para detalhes.` : undefined,
         });
       }
 
       if (errors.length > 0) {
         console.error('Erros na importação:', errors);
+        
+        // Mostrar os primeiros 5 erros no toast
+        const primeiroErro = errors[0];
+        toast({
+          title: `${errors.length} erro(s) encontrado(s)`,
+          description: `Exemplo: ${primeiroErro}. Verifique se os nomes cadastrados correspondem exatamente aos do arquivo.`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
@@ -168,15 +197,63 @@ export function ImportacaoXLSX({
         </div>
       </Card>
 
-      <div className="text-sm text-muted-foreground space-y-2">
-        <p className="font-medium">Instruções:</p>
-        <ol className="list-decimal list-inside space-y-1">
-          <li>Baixe o template Excel clicando no botão acima</li>
-          <li>Preencha os dados seguindo o formato do exemplo</li>
-          <li>Use os nomes exatos dos empreendimentos, obras, disciplinas e projetistas cadastrados</li>
-          <li>As datas devem estar no formato AAAA-MM-DD (ex: 2025-01-15)</li>
-          <li>Salve e faça o upload do arquivo preenchido</li>
-        </ol>
+      <div className="space-y-4">
+        <div className="text-sm text-muted-foreground space-y-2">
+          <p className="font-medium">Instruções:</p>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>Baixe o template Excel clicando no botão acima</li>
+            <li>Preencha os dados seguindo o formato do exemplo</li>
+            <li>Use os nomes exatos dos empreendimentos, obras, disciplinas e projetistas cadastrados</li>
+            <li>As datas devem estar no formato AAAA-MM-DD (ex: 2025-01-15)</li>
+            <li>Salve e faça o upload do arquivo preenchido</li>
+          </ol>
+        </div>
+
+        <Card className="p-4 bg-muted/50">
+          <p className="font-medium text-sm mb-3">Nomes Cadastrados Disponíveis:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div>
+              <p className="font-semibold mb-1">Empreendimentos ({empreendimentos.length}):</p>
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground max-h-32 overflow-y-auto">
+                {empreendimentos.length > 0 ? (
+                  empreendimentos.map(e => <li key={e.id}>{e.nome}</li>)
+                ) : (
+                  <li className="text-red-500">Nenhum cadastrado</li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">Obras ({obras.length}):</p>
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground max-h-32 overflow-y-auto">
+                {obras.length > 0 ? (
+                  obras.map(o => <li key={o.id}>{o.nome}</li>)
+                ) : (
+                  <li className="text-red-500">Nenhuma cadastrada</li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">Disciplinas ({disciplinas.length}):</p>
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground max-h-32 overflow-y-auto">
+                {disciplinas.length > 0 ? (
+                  disciplinas.map(d => <li key={d.id}>{d.nome}</li>)
+                ) : (
+                  <li className="text-red-500">Nenhuma cadastrada</li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <p className="font-semibold mb-1">Projetistas ({projetistas.length}):</p>
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground max-h-32 overflow-y-auto">
+                {projetistas.length > 0 ? (
+                  projetistas.map(p => <li key={p.id}>{p.nome}</li>)
+                ) : (
+                  <li className="text-red-500">Nenhum cadastrado</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

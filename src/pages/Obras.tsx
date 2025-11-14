@@ -1,26 +1,109 @@
-import { useState } from 'react';
-import { useObras, useEmpreendimentos } from '@/hooks/useData';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Obra } from '@/types';
+import { ImportacaoGenerica } from '@/components/ImportacaoGenerica';
+import type { Empreendimento, Obra } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Obras() {
-  const [obras, setObras] = useObras();
-  const [empreendimentos] = useEmpreendimentos();
+  const [obras, setObras] = useState<Obra[]>([]);
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Obra | null>(null);
   const [nome, setNome] = useState('');
   const [empreendimentoId, setEmpreendimentoId] = useState('');
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadEmpreendimentos();
+    loadObras();
+  }, []);
+
+  const loadEmpreendimentos = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setEmpreendimentos([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('empreendimentos')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const mapped: Empreendimento[] = (data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        createdAt: item.created_at,
+      }));
+
+      setEmpreendimentos(mapped);
+    } catch (error: any) {
+      console.error('Erro ao carregar empreendimentos:', error);
+      toast({
+        title: 'Erro ao carregar empreendimentos',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadObras = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setObras([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('obras')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const mapped: Obra[] = (data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        empreendimentoId: item.empreendimento_id,
+        createdAt: item.created_at,
+      }));
+
+      setObras(mapped);
+    } catch (error: any) {
+      console.error('Erro ao carregar obras:', error);
+      toast({
+        title: 'Erro ao carregar obras',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!nome.trim() || !empreendimentoId) {
@@ -28,20 +111,73 @@ export default function Obras() {
       return;
     }
 
-    if (editingItem) {
-      setObras(obras.map(item => 
-        item.id === editingItem.id ? { ...item, nome, empreendimentoId } : item
-      ));
-      toast({ title: 'Obra atualizada com sucesso' });
-    } else {
-      const newItem: Obra = {
-        id: crypto.randomUUID(),
-        nome,
-        empreendimentoId,
-        createdAt: new Date().toISOString(),
-      };
-      setObras([...obras, newItem]);
-      toast({ title: 'Obra criada com sucesso' });
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      if (editingItem) {
+        const { data, error } = await supabase
+          .from('obras')
+          .update({
+            nome,
+            empreendimento_id: empreendimentoId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingItem.id)
+          .eq('user_id', user.id)
+          .select('*')
+          .single();
+
+        if (error) throw error;
+
+        const updated: Obra = {
+          id: data.id,
+          nome: data.nome,
+          empreendimentoId: data.empreendimento_id,
+          createdAt: data.created_at,
+        };
+
+        setObras(obras.map(item => 
+          item.id === updated.id ? updated : item
+        ));
+        toast({ title: 'Obra atualizada com sucesso' });
+      } else {
+        const { data, error } = await supabase
+          .from('obras')
+          .insert({
+            nome,
+            empreendimento_id: empreendimentoId,
+            user_id: user.id,
+          })
+          .select('*')
+          .single();
+
+        if (error) throw error;
+
+        const newItem: Obra = {
+          id: data.id,
+          nome: data.nome,
+          empreendimentoId: data.empreendimento_id,
+          createdAt: data.created_at,
+        };
+
+        setObras([...obras, newItem]);
+        toast({ title: 'Obra criada com sucesso' });
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar obra:', error);
+      toast({
+        title: 'Erro ao salvar obra',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
 
     setNome('');
@@ -57,13 +193,84 @@ export default function Obras() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setObras(obras.filter(item => item.id !== id));
-    toast({ title: 'Obra excluída' });
+  const handleDelete = async (id: string) => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('obras')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setObras(obras.filter(item => item.id !== id));
+      toast({ title: 'Obra excluída' });
+    } catch (error: any) {
+      console.error('Erro ao excluir obra:', error);
+      toast({
+        title: 'Erro ao excluir obra',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getEmpreendimentoNome = (id: string) => {
     return empreendimentos.find(e => e.id === id)?.nome || 'N/A';
+  };
+
+  const handleImport = async (items: Array<{ nome: string; empreendimentoId: string }>) => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      const payload = items.map(item => ({
+        nome: item.nome,
+        empreendimento_id: item.empreendimentoId,
+        user_id: user.id,
+      }));
+
+      const { data, error } = await supabase
+        .from('obras')
+        .insert(payload)
+        .select('*');
+
+      if (error) throw error;
+
+      const newItems: Obra[] = (data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        empreendimentoId: item.empreendimento_id,
+        createdAt: item.created_at,
+      }));
+
+      setObras([...obras, ...newItems]);
+      toast({ title: `${newItems.length} obra(s) importada(s) com sucesso` });
+    } catch (error: any) {
+      console.error('Erro ao importar obras:', error);
+      toast({
+        title: 'Erro ao importar obras',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -119,41 +326,58 @@ export default function Obras() {
         </div>
       </CardHeader>
       <CardContent>
-        {obras.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Nenhuma obra cadastrada ainda
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Empreendimento</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead className="w-24">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {obras.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.nome}</TableCell>
-                  <TableCell>{getEmpreendimentoNome(item.empreendimentoId)}</TableCell>
-                  <TableCell>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <Tabs defaultValue="lista" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="lista" className="mt-4">
+            {obras.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhuma obra cadastrada ainda
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Empreendimento</TableHead>
+                    <TableHead>Data de Criação</TableHead>
+                    <TableHead className="w-24">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {obras.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>{getEmpreendimentoNome(item.empreendimentoId)}</TableCell>
+                      <TableCell>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="importar" className="mt-4">
+            <ImportacaoGenerica<Obra>
+              tipo="obra"
+              onImport={handleImport}
+              empreendimentos={empreendimentos}
+            />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

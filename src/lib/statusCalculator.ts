@@ -1,22 +1,29 @@
 import type { StatusEntrega, StatusAnalise } from '@/types';
 
-export function calcularStatusEntrega(dataEntrega: string, dataEnvio?: string): StatusEntrega {
-  if (!dataEnvio) return 'pendente';
+export function calcularStatusEntrega(dataPrevistaEntrega: string, dataEntrega?: string): StatusEntrega {
+  if (!dataEntrega) return 'pendente';
   
+  const prevista = new Date(dataPrevistaEntrega);
   const entrega = new Date(dataEntrega);
-  const envio = new Date(dataEnvio);
   
-  return envio > entrega ? 'atrasado' : 'no-prazo';
+  return entrega > prevista ? 'atrasado' : 'no-prazo';
 }
 
-export function calcularStatusAnalise(dataEnvio?: string, dataAnalise?: string): StatusAnalise {
-  if (!dataEnvio) return 'pendente';
+export function calcularStatusAnalise(dataPrevistaAnalise?: string, dataAnalise?: string): StatusAnalise {
+  if (!dataPrevistaAnalise) return 'pendente';
   if (!dataAnalise) return 'pendente';
   
-  const envio = new Date(dataEnvio);
+  const prevista = new Date(dataPrevistaAnalise);
   const analise = new Date(dataAnalise);
   
-  const diffInDays = Math.ceil((analise.getTime() - envio.getTime()) / (1000 * 60 * 60 * 24));
+  return analise > prevista ? 'atrasado' : 'no-prazo';
+}
+
+export function calcularDataPrevistaAnalise(dataEntrega?: string): string | undefined {
+  if (!dataEntrega) return undefined;
   
-  return diffInDays > 7 ? 'atrasado' : 'no-prazo';
+  const entrega = new Date(dataEntrega);
+  entrega.setDate(entrega.getDate() + 5);
+  
+  return entrega.toISOString().split('T')[0];
 }

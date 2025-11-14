@@ -34,9 +34,10 @@ export interface Revisao {
   obraId: string;
   disciplinaId: string;
   projetistaId: string;
-  numeroRevisao: string;
-  dataEntrega: string;
-  dataEnvio?: string;
+  numeroRevisao: number;
+  dataPrevistaEntrega: string;
+  dataEntrega?: string;
+  dataPrevistaAnalise?: string;
   dataAnalise?: string;
   justificativa: string;
   statusEntrega: StatusEntrega;

@@ -1,23 +1,67 @@
-import { useState } from 'react';
-import { useDisciplinas } from '@/hooks/useData';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ImportacaoGenerica } from '@/components/ImportacaoGenerica';
 import type { Disciplina } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Disciplinas() {
-  const [disciplinas, setDisciplinas] = useDisciplinas();
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Disciplina | null>(null);
   const [nome, setNome] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadDisciplinas();
+  }, []);
+
+  const loadDisciplinas = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        setDisciplinas([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('disciplinas')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const mapped: Disciplina[] = (data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        createdAt: item.created_at,
+      }));
+
+      setDisciplinas(mapped);
+    } catch (error: any) {
+      console.error('Erro ao carregar disciplinas:', error);
+      toast({
+        title: 'Erro ao carregar disciplinas',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!nome.trim()) {
@@ -25,19 +69,69 @@ export default function Disciplinas() {
       return;
     }
 
-    if (editingItem) {
-      setDisciplinas(disciplinas.map(item => 
-        item.id === editingItem.id ? { ...item, nome } : item
-      ));
-      toast({ title: 'Disciplina atualizada com sucesso' });
-    } else {
-      const newItem: Disciplina = {
-        id: crypto.randomUUID(),
-        nome,
-        createdAt: new Date().toISOString(),
-      };
-      setDisciplinas([...disciplinas, newItem]);
-      toast({ title: 'Disciplina criada com sucesso' });
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      if (editingItem) {
+        const { data, error } = await supabase
+          .from('disciplinas')
+          .update({
+            nome,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingItem.id)
+          .eq('user_id', user.id)
+          .select('*')
+          .single();
+
+        if (error) throw error;
+
+        const updated: Disciplina = {
+          id: data.id,
+          nome: data.nome,
+          createdAt: data.created_at,
+        };
+
+        setDisciplinas(disciplinas.map(item => 
+          item.id === updated.id ? updated : item
+        ));
+        toast({ title: 'Disciplina atualizada com sucesso' });
+      } else {
+        const { data, error } = await supabase
+          .from('disciplinas')
+          .insert({
+            nome,
+            user_id: user.id,
+          })
+          .select('*')
+          .single();
+
+        if (error) throw error;
+
+        const newItem: Disciplina = {
+          id: data.id,
+          nome: data.nome,
+          createdAt: data.created_at,
+        };
+
+        setDisciplinas([...disciplinas, newItem]);
+        toast({ title: 'Disciplina criada com sucesso' });
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar disciplina:', error);
+      toast({
+        title: 'Erro ao salvar disciplina',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
 
     setNome('');
@@ -51,9 +145,78 @@ export default function Disciplinas() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setDisciplinas(disciplinas.filter(item => item.id !== id));
-    toast({ title: 'Disciplina excluída' });
+  const handleDelete = async (id: string) => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('disciplinas')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setDisciplinas(disciplinas.filter(item => item.id !== id));
+      toast({ title: 'Disciplina excluída' });
+    } catch (error: any) {
+      console.error('Erro ao excluir disciplina:', error);
+      toast({
+        title: 'Erro ao excluir disciplina',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImport = async (items: Array<{ nome: string }>) => {
+    try {
+      setIsLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      const payload = items.map(item => ({
+        nome: item.nome,
+        user_id: user.id,
+      }));
+
+      const { data, error } = await supabase
+        .from('disciplinas')
+        .insert(payload)
+        .select('*');
+
+      if (error) throw error;
+
+      const newItems: Disciplina[] = (data || []).map((item) => ({
+        id: item.id,
+        nome: item.nome,
+        createdAt: item.created_at,
+      }));
+
+      setDisciplinas([...disciplinas, ...newItems]);
+      toast({ title: `${newItems.length} disciplina(s) importada(s) com sucesso` });
+    } catch (error: any) {
+      console.error('Erro ao importar disciplinas:', error);
+      toast({
+        title: 'Erro ao importar disciplinas',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -96,39 +259,55 @@ export default function Disciplinas() {
         </div>
       </CardHeader>
       <CardContent>
-        {disciplinas.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Nenhuma disciplina cadastrada ainda
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead className="w-24">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {disciplinas.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.nome}</TableCell>
-                  <TableCell>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <Tabs defaultValue="lista" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+            <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="lista" className="mt-4">
+            {disciplinas.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhuma disciplina cadastrada ainda
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Data de Criação</TableHead>
+                    <TableHead className="w-24">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {disciplinas.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="importar" className="mt-4">
+            <ImportacaoGenerica<Disciplina>
+              tipo="disciplina"
+              onImport={handleImport}
+            />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

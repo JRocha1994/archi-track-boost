@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { calcularStatusEntrega, calcularStatusAnalise } from '@/lib/statusCalculator';
+import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RevisaoFormProps {
   revisoes: Revisao[];
@@ -31,8 +32,9 @@ export function RevisaoForm({
     disciplinaId: '',
     projetistaId: '',
     numeroRevisao: '',
+    dataPrevistaEntrega: '',
     dataEntrega: '',
-    dataEnvio: '',
+    dataPrevistaAnalise: '',
     dataAnalise: '',
     justificativa: '',
   });
@@ -40,30 +42,111 @@ export function RevisaoForm({
 
   const obrasFiltered = obras.filter(o => o.empreendimentoId === formData.empreendimentoId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== INÍCIO handleSubmit ===');
+    console.log('formData:', formData);
 
     if (!formData.empreendimentoId || !formData.obraId || !formData.disciplinaId || 
-        !formData.projetistaId || !formData.numeroRevisao || !formData.dataEntrega || !formData.justificativa) {
+        !formData.projetistaId || !formData.numeroRevisao || !formData.dataPrevistaEntrega || !formData.justificativa) {
+      console.log('Campos obrigatórios faltando');
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
 
-    const statusEntrega = calcularStatusEntrega(formData.dataEntrega, formData.dataEnvio || undefined);
-    const statusAnalise = calcularStatusAnalise(formData.dataEnvio || undefined, formData.dataAnalise || undefined);
+    const numeroRevisaoInt = parseInt(formData.numeroRevisao);
+    if (isNaN(numeroRevisaoInt)) {
+      toast({ title: 'Número da revisão deve ser um número inteiro válido', variant: 'destructive' });
+      return;
+    }
 
-    const newRevisao: Revisao = {
-      id: crypto.randomUUID(),
-      ...formData,
-      dataEnvio: formData.dataEnvio || undefined,
-      dataAnalise: formData.dataAnalise || undefined,
-      statusEntrega,
-      statusAnalise,
-      createdAt: new Date().toISOString(),
-    };
+    const dataPrevistaAnalise = calcularDataPrevistaAnalise(formData.dataEntrega || undefined);
+    const statusEntrega = calcularStatusEntrega(formData.dataPrevistaEntrega, formData.dataEntrega || undefined);
+    const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, formData.dataAnalise || undefined);
 
-    setRevisoes([...revisoes, newRevisao]);
-    toast({ title: 'Revisão registrada com sucesso' });
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Erro ao buscar usuário:', userError);
+        throw userError;
+      }
+      if (!user) {
+        toast({ title: 'Usuário não autenticado', variant: 'destructive' });
+        return;
+      }
+
+      console.log('Tentando inserir revisão com user_id:', user.id);
+      console.log('Dados da revisão:', {
+        empreendimento_id: formData.empreendimentoId,
+        obra_id: formData.obraId,
+        disciplina_id: formData.disciplinaId,
+        projetista_id: formData.projetistaId,
+        numero_revisao: numeroRevisaoInt,
+        data_prevista_entrega: formData.dataPrevistaEntrega,
+        data_entrega: formData.dataEntrega || null,
+        data_prevista_analise: dataPrevistaAnalise || null,
+        data_analise: formData.dataAnalise || null,
+        justificativa: formData.justificativa,
+        status_entrega: statusEntrega,
+        status_analise: statusAnalise,
+        user_id: user.id,
+      });
+
+      const { data, error } = await supabase
+        .from('revisoes')
+        .insert({
+          empreendimento_id: formData.empreendimentoId,
+          obra_id: formData.obraId,
+          disciplina_id: formData.disciplinaId,
+          projetista_id: formData.projetistaId,
+          numero_revisao: numeroRevisaoInt,
+          data_prevista_entrega: formData.dataPrevistaEntrega,
+          data_entrega: formData.dataEntrega || null,
+          data_prevista_analise: dataPrevistaAnalise || null,
+          data_analise: formData.dataAnalise || null,
+          justificativa: formData.justificativa,
+          status_entrega: statusEntrega,
+          status_analise: statusAnalise,
+          user_id: user.id,
+        })
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Erro do Supabase ao inserir revisão:', error);
+        throw error;
+      }
+
+      console.log('Revisão inserida com sucesso:', data);
+
+      const newRevisao: Revisao = {
+        id: data.id,
+        empreendimentoId: data.empreendimento_id,
+        obraId: data.obra_id,
+        disciplinaId: data.disciplina_id,
+        projetistaId: data.projetista_id,
+        numeroRevisao: data.numero_revisao,
+        dataPrevistaEntrega: data.data_prevista_entrega,
+        dataEntrega: data.data_entrega || undefined,
+        dataPrevistaAnalise: data.data_prevista_analise || undefined,
+        dataAnalise: data.data_analise || undefined,
+        justificativa: data.justificativa,
+        statusEntrega: data.status_entrega,
+        statusAnalise: data.status_analise,
+        createdAt: data.created_at,
+      };
+
+      setRevisoes([...revisoes, newRevisao]);
+      toast({ title: 'Revisão registrada com sucesso' });
+    } catch (error: any) {
+      console.error('Erro ao salvar revisão:', error);
+      toast({
+        title: 'Erro ao salvar revisão',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     setFormData({
       empreendimentoId: formData.empreendimentoId,
@@ -71,8 +154,9 @@ export function RevisaoForm({
       disciplinaId: formData.disciplinaId,
       projetistaId: formData.projetistaId,
       numeroRevisao: '',
+      dataPrevistaEntrega: '',
       dataEntrega: '',
-      dataEnvio: '',
+      dataPrevistaAnalise: '',
       dataAnalise: '',
       justificativa: '',
     });
@@ -154,29 +238,46 @@ export function RevisaoForm({
           <Label htmlFor="numeroRevisao">Número da Revisão *</Label>
           <Input
             id="numeroRevisao"
+            type="number"
             value={formData.numeroRevisao}
             onChange={(e) => setFormData({ ...formData, numeroRevisao: e.target.value })}
-            placeholder="Ex: R01, R02"
+            placeholder="Ex: 1, 2, 3"
+            min="0"
+            step="1"
           />
         </div>
 
         <div>
-          <Label htmlFor="dataEntrega">Data de Entrega *</Label>
+          <Label htmlFor="dataPrevistaEntrega">Dt. Prevista Entrega *</Label>
+          <Input
+            id="dataPrevistaEntrega"
+            type="date"
+            value={formData.dataPrevistaEntrega}
+            onChange={(e) => setFormData({ ...formData, dataPrevistaEntrega: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="dataEntrega">Dt. de Entrega</Label>
           <Input
             id="dataEntrega"
             type="date"
             value={formData.dataEntrega}
-            onChange={(e) => setFormData({ ...formData, dataEntrega: e.target.value })}
+            onChange={(e) => {
+              const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
+              setFormData({ ...formData, dataEntrega: e.target.value, dataPrevistaAnalise: dataPrevistaAnalise || '' });
+            }}
           />
         </div>
 
         <div>
-          <Label htmlFor="dataEnvio">Data de Envio</Label>
+          <Label htmlFor="dataPrevistaAnalise">Dt. Prevista p/Análise</Label>
           <Input
-            id="dataEnvio"
+            id="dataPrevistaAnalise"
             type="date"
-            value={formData.dataEnvio}
-            onChange={(e) => setFormData({ ...formData, dataEnvio: e.target.value })}
+            value={formData.dataPrevistaAnalise}
+            disabled
+            title="Calculado automaticamente como Data de Entrega + 5 dias"
           />
         </div>
 
