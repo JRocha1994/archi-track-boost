@@ -40,7 +40,7 @@ export function UserMenu() {
       toast({
         title: 'Logout realizado com sucesso',
       });
-      navigate('/login');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Erro ao fazer logout',

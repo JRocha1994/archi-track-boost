@@ -24,8 +24,9 @@ export default function Index() {
   const loadAllData = async () => {
     try {
       setIsLoading(true);
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const user = session?.user;
       if (!user) {
         setRevisoes([]);
         setEmpreendimentos([]);

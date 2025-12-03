@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { Building2, FileText, Layers, Users, ClipboardList, Menu, ChevronLeft, ChevronRight, BarChart3, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,9 @@ import { UserMenu } from '@/components/layout/UserMenu';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Revisões', href: '/', icon: ClipboardList },
+  { name: 'Revisões', href: '/dashboard', icon: ClipboardList },
   { name: 'Indicadores', href: '/indicadores', icon: BarChart3 },
+  // { name: 'Assistente IA', href: '/assistente-ia', icon: Bot }, // Temporariamente desativado
   { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2 },
   { name: 'Obras', href: '/obras', icon: FileText },
   { name: 'Disciplinas', href: '/disciplinas', icon: Layers },
@@ -17,40 +18,11 @@ const navigation = [
   { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ];
 
+import { OnboardingTour } from '@/components/OnboardingTour';
+
 export function Layout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
-
-  useEffect(() => {
-    const refreshLogo = () => {
-      const savedLogo = localStorage.getItem('company_logo');
-      setCompanyLogo(savedLogo || null);
-    };
-
-    // Inicializa ao montar/navegar
-    refreshLogo();
-
-    // Atualiza quando localStorage mudar em outras abas
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'company_logo') {
-        refreshLogo();
-      }
-    };
-
-    // Atualiza imediatamente nesta mesma aba após upload/remover
-    const handleCustom = () => {
-      refreshLogo();
-    };
-
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('company_logo_updated' as any, handleCustom);
-
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('company_logo_updated' as any, handleCustom);
-    };
-  }, [location]);
 
   const NavLinks = ({ collapsed = false }: { collapsed?: boolean }) => (
     <>
@@ -83,15 +55,8 @@ export function Layout() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            {companyLogo ? (
-              <img src={companyLogo} alt="Logo" className="h-8 w-auto max-w-[120px] object-contain" />
-            ) : (
-              <>
-                <Building2 className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold">Gestão de Projetos Executivos</h1>
-              </>
-            )}
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">Gestão de Projetos Executivos</h1>
           </div>
           
           <div className="flex items-center gap-2">
@@ -143,6 +108,7 @@ export function Layout() {
       </div>
       
       <Footer />
+      <OnboardingTour />
     </div>
   );
 }

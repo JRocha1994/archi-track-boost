@@ -23,8 +23,9 @@ export default function Indicadores() {
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const user = session?.user;
         if (!user) {
           setEmpreendimentos([]);
           setObras([]);

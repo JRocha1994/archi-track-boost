@@ -209,8 +209,9 @@ export function RevisoesTable({
     const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, newRow.dataAnalise);
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const user = session?.user;
       if (!user) {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;
@@ -270,8 +271,9 @@ export function RevisoesTable({
 
   const handleDelete = async (id: string) => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const user = session?.user;
       if (!user) {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;
@@ -325,8 +327,9 @@ export function RevisoesTable({
     );
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      const user = session?.user;
       if (!user) {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;

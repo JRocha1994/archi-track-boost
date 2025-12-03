@@ -65,11 +65,12 @@ export function RevisaoForm({
     const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, formData.dataAnalise || undefined);
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('Erro ao buscar usuário:', userError);
-        throw userError;
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Erro ao buscar sessão:', sessionError);
+        throw sessionError;
       }
+      const user = session?.user;
       if (!user) {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;

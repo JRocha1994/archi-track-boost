@@ -62,12 +62,19 @@ export default function Cadastro() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Cadastro realizado com sucesso!',
-        description: 'Verifique seu e-mail para confirmar o cadastro.',
-      });
-
-      navigate('/login');
+      if (data.session) {
+        toast({
+          title: 'Cadastro realizado com sucesso!',
+          description: 'Bem-vindo!',
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: 'Cadastro realizado com sucesso!',
+          description: 'Sua conta foi criada. Faça login para continuar.',
+        });
+        navigate('/login');
+      }
     } catch (error: any) {
       toast({
         title: 'Erro ao criar conta',
