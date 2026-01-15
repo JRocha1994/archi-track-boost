@@ -40,27 +40,22 @@ export default function Index() {
         supabase
           .from('empreendimentos')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
         supabase
           .from('obras')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
         supabase
           .from('disciplinas')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
         supabase
           .from('projetistas')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
         supabase
           .from('revisoes')
           .select('*')
-          .eq('user_id', user.id)
           .order('created_at', { ascending: true }),
       ]);
 

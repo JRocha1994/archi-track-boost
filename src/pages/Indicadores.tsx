@@ -36,11 +36,11 @@ export default function Indicadores() {
         }
 
         const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
-          supabase.from('empreendimentos').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('obras').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('disciplinas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('projetistas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('revisoes').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+          supabase.from('empreendimentos').select('*').order('created_at', { ascending: true }),
+          supabase.from('obras').select('*').order('created_at', { ascending: true }),
+          supabase.from('disciplinas').select('*').order('created_at', { ascending: true }),
+          supabase.from('projetistas').select('*').order('created_at', { ascending: true }),
+          supabase.from('revisoes').select('*').order('created_at', { ascending: true }),
         ]);
 
         if (empRes.error) throw empRes.error;

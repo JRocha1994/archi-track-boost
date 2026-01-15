@@ -11,21 +11,27 @@ CREATE TABLE public.empreendimentos (
 ALTER TABLE public.empreendimentos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS para empreendimentos
-CREATE POLICY "Usuários podem ver seus próprios empreendimentos"
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios empreendimentos" ON public.empreendimentos;
+DROP POLICY IF EXISTS "Usuários podem criar seus próprios empreendimentos" ON public.empreendimentos;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios empreendimentos" ON public.empreendimentos;
+DROP POLICY IF EXISTS "Usuários podem deletar seus próprios empreendimentos" ON public.empreendimentos;
+
+CREATE POLICY "Usuários autenticados podem ver empreendimentos"
 ON public.empreendimentos FOR SELECT
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem criar seus próprios empreendimentos"
+CREATE POLICY "Usuários autenticados podem criar empreendimentos"
 ON public.empreendimentos FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem atualizar seus próprios empreendimentos"
+CREATE POLICY "Usuários autenticados podem atualizar empreendimentos"
 ON public.empreendimentos FOR UPDATE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem deletar seus próprios empreendimentos"
+CREATE POLICY "Usuários autenticados podem deletar empreendimentos"
 ON public.empreendimentos FOR DELETE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
 -- Criar tabela de obras
 CREATE TABLE public.obras (
@@ -41,21 +47,27 @@ CREATE TABLE public.obras (
 ALTER TABLE public.obras ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS para obras
-CREATE POLICY "Usuários podem ver suas próprias obras"
+DROP POLICY IF EXISTS "Usuários podem ver suas próprias obras" ON public.obras;
+DROP POLICY IF EXISTS "Usuários podem criar suas próprias obras" ON public.obras;
+DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias obras" ON public.obras;
+DROP POLICY IF EXISTS "Usuários podem deletar suas próprias obras" ON public.obras;
+
+CREATE POLICY "Usuários autenticados podem ver obras"
 ON public.obras FOR SELECT
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem criar suas próprias obras"
+CREATE POLICY "Usuários autenticados podem criar obras"
 ON public.obras FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem atualizar suas próprias obras"
+CREATE POLICY "Usuários autenticados podem atualizar obras"
 ON public.obras FOR UPDATE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem deletar suas próprias obras"
+CREATE POLICY "Usuários autenticados podem deletar obras"
 ON public.obras FOR DELETE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
 -- Criar tabela de disciplinas
 CREATE TABLE public.disciplinas (
@@ -70,21 +82,27 @@ CREATE TABLE public.disciplinas (
 ALTER TABLE public.disciplinas ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS para disciplinas
-CREATE POLICY "Usuários podem ver suas próprias disciplinas"
+DROP POLICY IF EXISTS "Usuários podem ver suas próprias disciplinas" ON public.disciplinas;
+DROP POLICY IF EXISTS "Usuários podem criar suas próprias disciplinas" ON public.disciplinas;
+DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias disciplinas" ON public.disciplinas;
+DROP POLICY IF EXISTS "Usuários podem deletar suas próprias disciplinas" ON public.disciplinas;
+
+CREATE POLICY "Usuários autenticados podem ver disciplinas"
 ON public.disciplinas FOR SELECT
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem criar suas próprias disciplinas"
+CREATE POLICY "Usuários autenticados podem criar disciplinas"
 ON public.disciplinas FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem atualizar suas próprias disciplinas"
+CREATE POLICY "Usuários autenticados podem atualizar disciplinas"
 ON public.disciplinas FOR UPDATE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem deletar suas próprias disciplinas"
+CREATE POLICY "Usuários autenticados podem deletar disciplinas"
 ON public.disciplinas FOR DELETE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
 -- Criar tabela de projetistas
 CREATE TABLE public.projetistas (
@@ -101,21 +119,27 @@ CREATE TABLE public.projetistas (
 ALTER TABLE public.projetistas ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS para projetistas
-CREATE POLICY "Usuários podem ver seus próprios projetistas"
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios projetistas" ON public.projetistas;
+DROP POLICY IF EXISTS "Usuários podem criar seus próprios projetistas" ON public.projetistas;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios projetistas" ON public.projetistas;
+DROP POLICY IF EXISTS "Usuários podem deletar seus próprios projetistas" ON public.projetistas;
+
+CREATE POLICY "Usuários autenticados podem ver projetistas"
 ON public.projetistas FOR SELECT
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem criar seus próprios projetistas"
+CREATE POLICY "Usuários autenticados podem criar projetistas"
 ON public.projetistas FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem atualizar seus próprios projetistas"
+CREATE POLICY "Usuários autenticados podem atualizar projetistas"
 ON public.projetistas FOR UPDATE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem deletar seus próprios projetistas"
+CREATE POLICY "Usuários autenticados podem deletar projetistas"
 ON public.projetistas FOR DELETE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
 -- Criar tipo de enum para status
 CREATE TYPE public.status_entrega AS ENUM ('no-prazo', 'atrasado', 'pendente');
@@ -144,21 +168,27 @@ CREATE TABLE public.revisoes (
 ALTER TABLE public.revisoes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS para revisões
-CREATE POLICY "Usuários podem ver suas próprias revisões"
+DROP POLICY IF EXISTS "Usuários podem ver suas próprias revisões" ON public.revisoes;
+DROP POLICY IF EXISTS "Usuários podem criar suas próprias revisões" ON public.revisoes;
+DROP POLICY IF EXISTS "Usuários podem atualizar suas próprias revisões" ON public.revisoes;
+DROP POLICY IF EXISTS "Usuários podem deletar suas próprias revisões" ON public.revisoes;
+
+CREATE POLICY "Usuários autenticados podem ver revisões"
 ON public.revisoes FOR SELECT
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem criar suas próprias revisões"
+CREATE POLICY "Usuários autenticados podem criar revisões"
 ON public.revisoes FOR INSERT
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem atualizar suas próprias revisões"
+CREATE POLICY "Usuários autenticados podem atualizar revisões"
 ON public.revisoes FOR UPDATE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated')
+WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Usuários podem deletar suas próprias revisões"
+CREATE POLICY "Usuários autenticados podem deletar revisões"
 ON public.revisoes FOR DELETE
-USING (auth.uid() = user_id);
+USING (auth.role() = 'authenticated');
 
 -- Função para atualizar updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

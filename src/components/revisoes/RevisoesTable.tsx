@@ -282,8 +282,7 @@ export function RevisoesTable({
       const { error } = await supabase
         .from('revisoes')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 
@@ -353,7 +352,6 @@ export function RevisoesTable({
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
         .select('*')
         .single();
 

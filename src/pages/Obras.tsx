@@ -41,7 +41,6 @@ export default function Obras() {
       const { data, error } = await supabase
         .from('empreendimentos')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -78,7 +77,6 @@ export default function Obras() {
       const { data, error } = await supabase
         .from('obras')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -129,7 +127,6 @@ export default function Obras() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingItem.id)
-          .eq('user_id', user.id)
           .select('*')
           .single();
 
@@ -206,8 +203,7 @@ export default function Obras() {
       const { error } = await supabase
         .from('obras')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 

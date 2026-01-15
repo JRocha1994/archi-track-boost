@@ -15,6 +15,8 @@ import Projetistas from "./pages/Projetistas";
 import Configuracoes from "./pages/Configuracoes";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 // import AssistenteIA from "./pages/AssistenteIA"; // Temporariamente desativado
 
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Rotas privadas (com Layout) */}
             <Route element={<Layout />}>

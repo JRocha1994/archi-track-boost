@@ -66,11 +66,11 @@ export default function AssistenteIA() {
         if (!user) return;
 
         const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
-          supabase.from('empreendimentos').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('obras').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('disciplinas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('projetistas').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
-          supabase.from('revisoes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('empreendimentos').select('*').order('created_at', { ascending: true }),
+          supabase.from('obras').select('*').order('created_at', { ascending: true }),
+          supabase.from('disciplinas').select('*').order('created_at', { ascending: true }),
+          supabase.from('projetistas').select('*').order('created_at', { ascending: true }),
+          supabase.from('revisoes').select('*').order('created_at', { ascending: false }),
         ]);
 
         if (empRes.error) throw empRes.error;
@@ -122,7 +122,7 @@ export default function AssistenteIA() {
         toast({ title: 'Usuário não autenticado', variant: 'destructive' });
         return;
       }
-      const { error } = await supabase.from('revisoes').delete().eq('id', id).eq('user_id', user.id);
+      const { error } = await supabase.from('revisoes').delete().eq('id', id);
       if (error) throw error;
       setRevisoes(revisoes.filter(r => r.id !== id));
       toast({ title: 'Revisão excluída' });

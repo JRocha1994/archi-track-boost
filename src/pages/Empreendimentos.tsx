@@ -37,7 +37,6 @@ export default function Empreendimentos() {
       const { data, error } = await supabase
         .from('empreendimentos')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -86,7 +85,6 @@ export default function Empreendimentos() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingItem.id)
-          .eq('user_id', user.id)
           .select('*')
           .single();
 
@@ -158,8 +156,7 @@ export default function Empreendimentos() {
       const { error } = await supabase
         .from('empreendimentos')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 

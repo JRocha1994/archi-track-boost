@@ -39,7 +39,6 @@ export default function Projetistas() {
       const { data, error } = await supabase
         .from('projetistas')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -92,7 +91,6 @@ export default function Projetistas() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingItem.id)
-          .eq('user_id', user.id)
           .select('*')
           .single();
 
@@ -174,8 +172,7 @@ export default function Projetistas() {
       const { error } = await supabase
         .from('projetistas')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 
