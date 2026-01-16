@@ -97,15 +97,15 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
         Object.keys(rawRow).forEach((key) => {
           const valor = rawRow[key];
 
-          // Preservar o Zero (0) para não ser tratado como falso/null
-          if (valor === 0) {
+          // Preservar o Zero (0) e string "0" para não serem tratados como falso/null
+          if (valor === 0 || valor === '0') {
             row[key] = 0;
             return;
           }
 
           // HOTFIX: Garantir que Número da Revisão seja tratado corretamente
           if (key === 'Número da Revisão') {
-            // Tenta converter para número (ex: "0" string -> 0 number)
+            // Converter para número
             const num = Number(valor);
             row[key] = !isNaN(num) ? num : valor;
             return;
@@ -131,8 +131,8 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
         });
 
         // 2. Validação Específica HOTFIX: Número da Revisão
-        // Se o campo estiver presente, validar estritamente aceitando 0
-        if ('Número da Revisão' in row) {
+        // Se a coluna existe no objeto processado
+        if (Object.prototype.hasOwnProperty.call(row, 'Número da Revisão')) {
           const rev = row['Número da Revisão'];
           // Aceita 0. Rejeita apenas null, undefined ou vazio.
           if (rev === null || rev === undefined || rev === '') {
