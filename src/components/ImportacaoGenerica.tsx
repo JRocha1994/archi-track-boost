@@ -141,9 +141,11 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
           }
         }
 
-        // 2. Validar nome obrigatório SOMENTE se a coluna existir
+        // 2. Validar nome obrigatório (apenas para tipos que exigem Nome)
+        const tiposComNomeObrigatorio = ['empreendimento', 'obra', 'disciplina', 'projetista'];
+
         if (
-          'Nome' in row &&
+          tiposComNomeObrigatorio.includes(tipo) &&
           (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === ''))
         ) {
           errors.push(`Linha ${index + 2}: Nome é obrigatório`);
