@@ -16,6 +16,63 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Converte um valor de data para o formato yyyy-MM-dd esperado pelos inputs type="date"
+ * Lida com: números seriais do Excel, strings em diversos formatos, objetos Date
+ */
+function formatDateForInput(value: any): string {
+  if (!value) return '';
+
+  // Se já for uma string no formato yyyy-MM-dd, retorna diretamente
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  // Se for um número (serial do Excel)
+  if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+    const numericValue = typeof value === 'number' ? value : parseInt(value, 10);
+
+    // Seriais do Excel começam em 1900-01-01 (serial = 1)
+    // Mas o Excel tem um bug que considera 1900 como ano bissexto, então ajustamos
+    // Para seriais > 60, subtraímos um dia
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30/12/1899
+    const date = new Date(excelEpoch.getTime() + numericValue * 24 * 60 * 60 * 1000);
+
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  // Se for uma string no formato dd/mm/yyyy
+  if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+    const [day, month, year] = value.split('/');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Se for um objeto Date
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Tenta parsear como data ISO ou outros formatos
+  if (typeof value === 'string') {
+    const parsedDate = new Date(value);
+    if (!isNaN(parsedDate.getTime())) {
+      const year = parsedDate.getFullYear();
+      const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(parsedDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return '';
+}
+
 interface RevisoesTableProps {
   revisoes: Revisao[];
   setRevisoes: (revisoes: Revisao[]) => void;
@@ -197,9 +254,9 @@ export function RevisoesTable({
   };
 
   const handleSaveNew = async () => {
-    if (!newRow?.empreendimentoId || !newRow?.obraId || !newRow?.disciplinaId || 
-        !newRow?.projetistaId || newRow?.numeroRevisao === undefined || newRow?.numeroRevisao === null || 
-        !newRow?.dataPrevistaEntrega || !newRow?.justificativa) {
+    if (!newRow?.empreendimentoId || !newRow?.obraId || !newRow?.disciplinaId ||
+      !newRow?.projetistaId || newRow?.numeroRevisao === undefined || newRow?.numeroRevisao === null ||
+      !newRow?.dataPrevistaEntrega || !newRow?.justificativa) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
@@ -392,9 +449,9 @@ export function RevisoesTable({
     // Encontrar todas as revisões do mesmo projeto/obra/disciplina/projetista
     const revisoesRelacionadas = revisoes.filter(
       r => r.empreendimentoId === revisao.empreendimentoId &&
-           r.obraId === revisao.obraId &&
-           r.disciplinaId === revisao.disciplinaId &&
-           r.projetistaId === revisao.projetistaId
+        r.obraId === revisao.obraId &&
+        r.disciplinaId === revisao.disciplinaId &&
+        r.projetistaId === revisao.projetistaId
     );
 
     // Extrair números das revisões e encontrar o maior
@@ -446,18 +503,18 @@ export function RevisoesTable({
           {filteredRevisoes.length} de {revisoes.length} revisão(ões)
         </p>
         <div className="flex gap-2">
-          <Button 
-            onClick={handleExportXLSX} 
-            size="sm" 
+          <Button
+            onClick={handleExportXLSX}
+            size="sm"
             variant="outline"
             title="Exportar registros para XLSX"
           >
             <Download className="mr-2 h-4 w-4" />
             Exportar XLSX
           </Button>
-          <Button 
-            onClick={() => setIsFullscreen(!isFullscreen)} 
-            size="sm" 
+          <Button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            size="sm"
             variant="outline"
             title={isFullscreen ? "Sair da tela cheia" : "Expandir tela cheia"}
           >
@@ -552,9 +609,9 @@ export function RevisoesTable({
             onSelectionChange={(values) => setFilters({ ...filters, statusAnalise: values as StatusAnalise[] })}
           />
         </div>
-        <Button 
-          onClick={clearAllFilters} 
-          size="sm" 
+        <Button
+          onClick={clearAllFilters}
+          size="sm"
           variant="outline"
           disabled={!hasActiveFilters}
         >
@@ -629,7 +686,7 @@ export function RevisoesTable({
                     column="Dt. Prevista Entrega"
                     values={[]}
                     selectedValues={[]}
-                    onFilterChange={() => {}}
+                    onFilterChange={() => { }}
                     type="date"
                     dateRange={filters.dataPrevistaEntrega}
                     onDateRangeChange={(range) => setFilters({ ...filters, dataPrevistaEntrega: range })}
@@ -643,7 +700,7 @@ export function RevisoesTable({
                     column="Dt. de Entrega"
                     values={[]}
                     selectedValues={[]}
-                    onFilterChange={() => {}}
+                    onFilterChange={() => { }}
                     type="date"
                     dateRange={filters.dataEntrega}
                     onDateRangeChange={(range) => setFilters({ ...filters, dataEntrega: range })}
@@ -657,7 +714,7 @@ export function RevisoesTable({
                     column="Dt. Prevista p/Análise"
                     values={[]}
                     selectedValues={[]}
-                    onFilterChange={() => {}}
+                    onFilterChange={() => { }}
                     type="date"
                     dateRange={filters.dataPrevistaAnalise}
                     onDateRangeChange={(range) => setFilters({ ...filters, dataPrevistaAnalise: range })}
@@ -671,7 +728,7 @@ export function RevisoesTable({
                     column="Data Análise"
                     values={[]}
                     selectedValues={[]}
-                    onFilterChange={() => {}}
+                    onFilterChange={() => { }}
                     type="date"
                     dateRange={filters.dataAnalise}
                     onDateRangeChange={(range) => setFilters({ ...filters, dataAnalise: range })}
@@ -762,7 +819,7 @@ export function RevisoesTable({
                   <Input
                     type="date"
                     className="h-8"
-                    value={newRow.dataPrevistaEntrega || ''}
+                    value={formatDateForInput(newRow.dataPrevistaEntrega)}
                     onChange={(e) => setNewRow({ ...newRow, dataPrevistaEntrega: e.target.value })}
                   />
                 </TableCell>
@@ -770,7 +827,7 @@ export function RevisoesTable({
                   <Input
                     type="date"
                     className="h-8"
-                    value={newRow.dataEntrega || ''}
+                    value={formatDateForInput(newRow.dataEntrega)}
                     onChange={(e) => {
                       const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
                       setNewRow({ ...newRow, dataEntrega: e.target.value, dataPrevistaAnalise });
@@ -781,7 +838,7 @@ export function RevisoesTable({
                   <Input
                     type="date"
                     className="h-8"
-                    value={newRow.dataPrevistaAnalise || ''}
+                    value={formatDateForInput(newRow.dataPrevistaAnalise)}
                     disabled
                     title="Calculado automaticamente como Data de Entrega + 5 dias"
                   />
@@ -790,7 +847,7 @@ export function RevisoesTable({
                   <Input
                     type="date"
                     className="h-8"
-                    value={newRow.dataAnalise || ''}
+                    value={formatDateForInput(newRow.dataAnalise)}
                     onChange={(e) => setNewRow({ ...newRow, dataAnalise: e.target.value })}
                   />
                 </TableCell>
@@ -815,7 +872,7 @@ export function RevisoesTable({
                 </TableCell>
               </TableRow>
             )}
-            
+
             {filteredRevisoes.map((revisao) => {
               const isEditing = editingRows[revisao.id];
               const editData = isEditing || revisao;
@@ -933,14 +990,14 @@ export function RevisoesTable({
                       <Input
                         type="date"
                         className="h-8"
-                        value={editData.dataPrevistaEntrega || ''}
+                        value={formatDateForInput(editData.dataPrevistaEntrega)}
                         onChange={(e) => setEditingRows({
                           ...editingRows,
                           [revisao.id]: { ...editData, dataPrevistaEntrega: e.target.value }
                         })}
                       />
                     ) : (
-                      new Date(revisao.dataPrevistaEntrega).toLocaleDateString('pt-BR')
+                      formatDateForInput(revisao.dataPrevistaEntrega) ? new Date(formatDateForInput(revisao.dataPrevistaEntrega) + 'T00:00:00').toLocaleDateString('pt-BR') : '-'
                     )}
                   </TableCell>
                   <TableCell>
@@ -948,7 +1005,7 @@ export function RevisoesTable({
                       <Input
                         type="date"
                         className="h-8"
-                        value={editData.dataEntrega || ''}
+                        value={formatDateForInput(editData.dataEntrega)}
                         onChange={(e) => {
                           const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
                           setEditingRows({
@@ -961,14 +1018,14 @@ export function RevisoesTable({
                       <Input
                         type="date"
                         className="h-8"
-                        value={revisao.dataEntrega || ''}
+                        value={formatDateForInput(revisao.dataEntrega)}
                         onChange={(e) => {
                           const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
                           const statusEntrega = calcularStatusEntrega(revisao.dataPrevistaEntrega, e.target.value);
                           const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, revisao.dataAnalise);
-                          const updatedRevisoes = revisoes.map(r => 
-                            r.id === revisao.id 
-                              ? { ...r, dataEntrega: e.target.value, dataPrevistaAnalise, statusEntrega, statusAnalise } 
+                          const updatedRevisoes = revisoes.map(r =>
+                            r.id === revisao.id
+                              ? { ...r, dataEntrega: e.target.value, dataPrevistaAnalise, statusEntrega, statusAnalise }
                               : r
                           );
                           setRevisoes(updatedRevisoes);
@@ -980,7 +1037,7 @@ export function RevisoesTable({
                     <Input
                       type="date"
                       className="h-8"
-                      value={isEditing ? editData.dataPrevistaAnalise || '' : revisao.dataPrevistaAnalise || ''}
+                      value={formatDateForInput(isEditing ? editData.dataPrevistaAnalise : revisao.dataPrevistaAnalise)}
                       disabled
                       title="Calculado automaticamente como Data de Entrega + 5 dias"
                     />
@@ -990,7 +1047,7 @@ export function RevisoesTable({
                       <Input
                         type="date"
                         className="h-8"
-                        value={editData.dataAnalise || ''}
+                        value={formatDateForInput(editData.dataAnalise)}
                         onChange={(e) => setEditingRows({
                           ...editingRows,
                           [revisao.id]: { ...editData, dataAnalise: e.target.value }
@@ -1000,12 +1057,12 @@ export function RevisoesTable({
                       <Input
                         type="date"
                         className="h-8"
-                        value={revisao.dataAnalise || ''}
+                        value={formatDateForInput(revisao.dataAnalise)}
                         onChange={(e) => {
                           const statusAnalise = calcularStatusAnalise(revisao.dataPrevistaAnalise, e.target.value);
-                          const updatedRevisoes = revisoes.map(r => 
-                            r.id === revisao.id 
-                              ? { ...r, dataAnalise: e.target.value, statusAnalise } 
+                          const updatedRevisoes = revisoes.map(r =>
+                            r.id === revisao.id
+                              ? { ...r, dataAnalise: e.target.value, statusAnalise }
                               : r
                           );
                           setRevisoes(updatedRevisoes);
@@ -1033,19 +1090,19 @@ export function RevisoesTable({
                     <div className="flex gap-1">
                       {isEditing ? (
                         <>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleSaveEdit(revisao.id)}
                             title="Salvar edição"
                           >
                             <Save className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleCancelEdit(revisao.id)}
                             title="Cancelar edição"
                           >
@@ -1054,28 +1111,28 @@ export function RevisoesTable({
                         </>
                       ) : (
                         <>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleEdit(revisao)}
                             title="Editar revisão"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleDuplicate(revisao)}
                             title="Duplicar revisão"
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
                             onClick={() => handleDelete(revisao.id)}
                             title="Excluir revisão"
                           >
