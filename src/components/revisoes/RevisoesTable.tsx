@@ -73,6 +73,61 @@ function formatDateForInput(value: any): string {
   return '';
 }
 
+/**
+ * Valida se a revisão segue as regras de unicidade e sequência
+ */
+function validateRevisionSequence(
+  revisoes: Revisao[],
+  novaRevisao: Partial<Revisao>,
+  ignoreId?: string
+): string | null {
+  const numero = Number(novaRevisao.numeroRevisao);
+
+  // Lógica específica para EDIÇÃO: Se for a mesma revisão (mesmo ID) e o número não mudou, e o grupo não mudou, está OK.
+  if (ignoreId) {
+    const original = revisoes.find(r => r.id === ignoreId);
+    if (original && original.numeroRevisao === numero) {
+      const mesmoGrupo =
+        original.empreendimentoId === novaRevisao.empreendimentoId &&
+        original.obraId === novaRevisao.obraId &&
+        original.disciplinaId === novaRevisao.disciplinaId &&
+        original.projetistaId === novaRevisao.projetistaId;
+
+      if (mesmoGrupo) return null;
+    }
+  }
+
+  // Filtra revisões do mesmo grupo (Empreendimento, Obra, Disciplina, Projetista)
+  const grupo = revisoes.filter(r =>
+    r.empreendimentoId === novaRevisao.empreendimentoId &&
+    r.obraId === novaRevisao.obraId &&
+    r.disciplinaId === novaRevisao.disciplinaId &&
+    r.projetistaId === novaRevisao.projetistaId &&
+    r.id !== ignoreId
+  );
+
+
+
+
+  // 1. Validação de Duplicidade
+  if (grupo.some(r => r.numeroRevisao === numero)) {
+    return 'Esse número de revisão já foi registrado no sistema.';
+  }
+
+  // 2. Validação de Sequência
+  const maxRev = grupo.length > 0
+    ? Math.max(...grupo.map(r => r.numeroRevisao))
+    : 0;
+
+  const expected = maxRev + 1;
+
+  if (numero !== expected) {
+    return `A revisão informada não segue a sequência correta. A próxima revisão válida é ${expected}.`;
+  }
+
+  return null;
+}
+
 interface RevisoesTableProps {
   revisoes: Revisao[];
   setRevisoes: (revisoes: Revisao[]) => void;
@@ -261,6 +316,17 @@ export function RevisoesTable({
       return;
     }
 
+    // Validação de regras de negócio (Duplicidade e Sequência)
+    const validationError = validateRevisionSequence(revisoes, newRow);
+    if (validationError) {
+      toast({
+        title: 'Erro de validação',
+        description: validationError,
+        variant: 'destructive'
+      });
+      return;
+    }
+
     const dataPrevistaAnalise = calcularDataPrevistaAnalise(newRow.dataEntrega);
     const statusEntrega = calcularStatusEntrega(newRow.dataPrevistaEntrega!, newRow.dataEntrega);
     const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, newRow.dataAnalise);
@@ -371,6 +437,18 @@ export function RevisoesTable({
   const handleSaveEdit = async (id: string) => {
     const editedRevisao = editingRows[id];
     if (!editedRevisao) return;
+
+    // Validação de regras de negócio (Duplicidade e Sequência)
+    // Passamos o ID da revisão atual para ignorá-la na busca de duplicatas e cálculo de MAX
+    const validationError = validateRevisionSequence(revisoes, editedRevisao, id);
+    if (validationError) {
+      toast({
+        title: 'Erro de validação',
+        description: validationError,
+        variant: 'destructive'
+      });
+      return;
+    }
 
     const dataPrevistaAnalise = calcularDataPrevistaAnalise(editedRevisao.dataEntrega);
     const statusEntrega = calcularStatusEntrega(
