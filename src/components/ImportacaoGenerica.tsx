@@ -103,6 +103,14 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
             return;
           }
 
+          // HOTFIX: Garantir que Número da Revisão seja tratado corretamente
+          if (key === 'Número da Revisão') {
+            // Tenta converter para número (ex: "0" string -> 0 number)
+            const num = Number(valor);
+            row[key] = !isNaN(num) ? num : valor;
+            return;
+          }
+
           // Heurística para identificar colunas de data
           const keyLower = key.toLowerCase();
           const pareceData =
@@ -121,6 +129,17 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
             row[key] = valor;
           }
         });
+
+        // 2. Validação Específica HOTFIX: Número da Revisão
+        // Se o campo estiver presente, validar estritamente aceitando 0
+        if ('Número da Revisão' in row) {
+          const rev = row['Número da Revisão'];
+          // Aceita 0. Rejeita apenas null, undefined ou vazio.
+          if (rev === null || rev === undefined || rev === '') {
+            errors.push(`Linha ${index + 2}: Número da Revisão é inválido ou ausente`);
+            return;
+          }
+        }
 
         // 2. Validar nome obrigatório
         if (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === '')) {
