@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Trash2, Save, Copy, Edit, X, Maximize2, Minimize2, FilterX, Download, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Save, Copy, Edit, X, Maximize2, Minimize2, FilterX, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import { ColumnFilter } from './ColumnFilter';
@@ -177,6 +177,19 @@ export function RevisoesTable({
     dataAnalise: {},
   });
 
+  // Estado de Ordenação
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+
+  const toggleSort = (key: string) => {
+    setSortConfig(current => {
+      if (current?.key === key) {
+        if (current.direction === 'asc') return { key, direction: 'desc' };
+        return null; // Remove ordenação no terceiro clique
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
   const getNome = (id: string, list: any[]) => list.find(item => item.id === id)?.nome || '';
 
   // Valores únicos para filtros
@@ -261,6 +274,65 @@ export function RevisoesTable({
       return true;
     });
   }, [revisoes, filters, empreendimentos, obras, disciplinas, projetistas]);
+
+  // Aplicar Ordenação
+  const sortedRevisoes = useMemo(() => {
+    if (!sortConfig) return filteredRevisoes;
+
+    const sorted = [...filteredRevisoes].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      // Resolver valores baseados na chave
+      switch (sortConfig.key) {
+        case 'empreendimento':
+          valA = getNome(a.empreendimentoId, empreendimentos);
+          valB = getNome(b.empreendimentoId, empreendimentos);
+          break;
+        case 'obra':
+          valA = getNome(a.obraId, obras);
+          valB = getNome(b.obraId, obras);
+          break;
+        case 'disciplina':
+          valA = getNome(a.disciplinaId, disciplinas);
+          valB = getNome(b.disciplinaId, disciplinas);
+          break;
+        case 'projetista':
+          valA = getNome(a.projetistaId, projetistas);
+          valB = getNome(b.projetistaId, projetistas);
+          break;
+        case 'revisao':
+          valA = a.numeroRevisao;
+          valB = b.numeroRevisao;
+          break;
+        case 'dtPrevistaEntrega':
+          valA = a.dataPrevistaEntrega;
+          valB = b.dataPrevistaEntrega;
+          break;
+        case 'dtEntrega':
+          valA = a.dataEntrega || '';
+          valB = b.dataEntrega || '';
+          break;
+        case 'dtPrevistaAnalise':
+          valA = a.dataPrevistaAnalise || '';
+          valB = b.dataPrevistaAnalise || '';
+          break;
+        case 'dtAnalise':
+          valA = a.dataAnalise || '';
+          valB = b.dataAnalise || '';
+          break;
+        default:
+          return 0;
+      }
+
+      // Comparação
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [filteredRevisoes, sortConfig, empreendimentos, obras, disciplinas, projetistas]);
 
   const hasActiveFilters = useMemo(() => {
     return filters.empreendimento.length > 0 ||
@@ -704,7 +776,17 @@ export function RevisoesTable({
             <TableRow>
               <TableHead className="min-w-[150px]">
                 <div className="flex items-center gap-1">
-                  Empreendimento
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('empreendimento')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Empreendimento
+                    {sortConfig?.key === 'empreendimento' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'empreendimento' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Empreendimento"
                     values={uniqueValues.empreendimento}
@@ -715,7 +797,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[120px]">
                 <div className="flex items-center gap-1">
-                  Obra
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('obra')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Obra
+                    {sortConfig?.key === 'obra' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'obra' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Obra"
                     values={uniqueValues.obra}
@@ -726,7 +818,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[120px]">
                 <div className="flex items-center gap-1">
-                  Disciplina
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('disciplina')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Disciplina
+                    {sortConfig?.key === 'disciplina' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'disciplina' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Disciplina"
                     values={uniqueValues.disciplina}
@@ -737,7 +839,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[120px]">
                 <div className="flex items-center gap-1">
-                  Projetista
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('projetista')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Projetista
+                    {sortConfig?.key === 'projetista' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'projetista' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Projetista"
                     values={uniqueValues.projetista}
@@ -748,7 +860,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[100px]">
                 <div className="flex items-center gap-1">
-                  Revisão
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('revisao')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Revisão
+                    {sortConfig?.key === 'revisao' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'revisao' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Revisão"
                     values={uniqueValues.numeroRevisao}
@@ -759,7 +881,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[150px]">
                 <div className="flex items-center gap-1">
-                  Dt. Prevista Entrega
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('dtPrevistaEntrega')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Dt. Prevista Entrega
+                    {sortConfig?.key === 'dtPrevistaEntrega' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'dtPrevistaEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Dt. Prevista Entrega"
                     values={[]}
@@ -773,7 +905,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[130px]">
                 <div className="flex items-center gap-1">
-                  Dt. de Entrega
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('dtEntrega')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Dt. de Entrega
+                    {sortConfig?.key === 'dtEntrega' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'dtEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Dt. de Entrega"
                     values={[]}
@@ -787,7 +929,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[160px]">
                 <div className="flex items-center gap-1">
-                  Dt. Prevista p/Análise
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('dtPrevistaAnalise')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Dt. Prevista p/Análise
+                    {sortConfig?.key === 'dtPrevistaAnalise' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'dtPrevistaAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Dt. Prevista p/Análise"
                     values={[]}
@@ -801,7 +953,17 @@ export function RevisoesTable({
               </TableHead>
               <TableHead className="min-w-[130px]">
                 <div className="flex items-center gap-1">
-                  Data Análise
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('dtAnalise')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Data Análise
+                    {sortConfig?.key === 'dtAnalise' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'dtAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
                   <ColumnFilter
                     column="Data Análise"
                     values={[]}
@@ -951,7 +1113,7 @@ export function RevisoesTable({
               </TableRow>
             )}
 
-            {filteredRevisoes.map((revisao) => {
+            {sortedRevisoes.map((revisao) => {
               const isEditing = editingRows[revisao.id];
               const editData = isEditing || revisao;
 
