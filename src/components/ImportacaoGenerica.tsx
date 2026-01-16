@@ -146,16 +146,19 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
 
         if (
           tiposComNomeObrigatorio.includes(tipo) &&
+          Object.prototype.hasOwnProperty.call(row, 'Nome') &&
           (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === ''))
         ) {
           errors.push(`Linha ${index + 2}: Nome é obrigatório`);
           return;
         }
 
-        const item: any = {
-          ...row, // Inclui todos os campos processados
-          nome: String(row.Nome).trim(),
-        };
+        const item: any = { ...row }; // Inclui todos os campos processados
+
+        // Apenas processa e inclui 'nome' se a coluna existir no XLSX
+        if (Object.prototype.hasOwnProperty.call(row, 'Nome')) {
+          item.nome = String(row.Nome).trim();
+        }
 
         // 3. Para obras, validar e buscar empreendimento
         if (tipo === 'obra') {
