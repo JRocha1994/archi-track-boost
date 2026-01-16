@@ -5,6 +5,7 @@ import { Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import * as XLSX from 'xlsx';
+import { supabase } from '@/integrations/supabase/client';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
 
 interface ImportacaoXLSXProps {
@@ -169,10 +170,68 @@ export function ImportacaoXLSX({
       }
 
       if (newRevisoes.length > 0) {
-        setRevisoes((prev) => [...prev, ...newRevisoes]);
+        // Verificar autenticação
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.user) {
+          toast({
+            title: 'Sessão inválida',
+            description: 'Por favor, faça login novamente para salvar os dados.',
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        // Mapear para formato do banco de dados (snake_case)
+        const dbInserts = newRevisoes.map((r) => ({
+          empreendimento_id: r.empreendimentoId,
+          obra_id: r.obraId,
+          disciplina_id: r.disciplinaId,
+          projetista_id: r.projetistaId,
+          numero_revisao: r.numeroRevisao,
+          data_prevista_entrega: r.dataPrevistaEntrega,
+          data_entrega: r.dataEntrega || null,
+          data_prevista_analise: r.dataPrevistaAnalise || null,
+          data_analise: r.dataAnalise || null,
+          justificativa: r.justificativa,
+          status_entrega: r.statusEntrega,
+          status_analise: r.statusAnalise,
+          user_id: session.user.id,
+        }));
+
+        // Inserir no Supabase e retornar dados inseridos
+        const { data, error: insertError } = await supabase
+          .from('revisoes')
+          .insert(dbInserts)
+          .select();
+
+        if (insertError) {
+          console.error('Erro ao inserir no Supabase:', insertError);
+          throw new Error('Falha ao salvar registros no banco de dados.');
+        }
+
+        // Converter dados retornados para formato local
+        const revisoesSalvas: Revisao[] = data.map((item: any) => ({
+          id: item.id,
+          empreendimentoId: item.empreendimento_id,
+          obraId: item.obra_id,
+          disciplinaId: item.disciplina_id,
+          projetistaId: item.projetista_id,
+          numeroRevisao: item.numero_revisao,
+          dataPrevistaEntrega: item.data_prevista_entrega,
+          dataEntrega: item.data_entrega,
+          dataPrevistaAnalise: item.data_prevista_analise,
+          dataAnalise: item.data_analise,
+          justificativa: item.justificativa,
+          statusEntrega: item.status_entrega,
+          statusAnalise: item.status_analise,
+          createdAt: item.created_at,
+        }));
+
+        setRevisoes((prev) => [...prev, ...revisoesSalvas]);
+
         toast({
           title: 'Importação realizada com sucesso!',
-          description: `${newRevisoes.length} novas revisões foram adicionadas.`,
+          description: `${revisoesSalvas.length} novas revisões foram salvas no sistema.`,
         });
       } else {
         toast({
