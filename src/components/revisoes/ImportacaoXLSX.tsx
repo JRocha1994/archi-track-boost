@@ -57,6 +57,57 @@ export function ImportacaoXLSX({
     return item?.id;
   };
 
+  /**
+   * Converte um valor de data para o formato yyyy-MM-dd esperado pelos inputs type="date"
+   * Lida com: números seriais do Excel, strings em diversos formatos, objetos Date
+   */
+  function formatDateForInput(value: any): string {
+    if (!value) return '';
+
+    // Se já for uma string no formato yyyy-MM-dd, retorna diretamente
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+
+    // Se for um número (serial do Excel)
+    if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+      const numericValue = typeof value === 'number' ? value : parseInt(value, 10);
+
+      // Seriais do Excel começam em 1900-01-01 (serial = 1)
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30/12/1899
+      const date = new Date(excelEpoch.getTime() + numericValue * 24 * 60 * 60 * 1000);
+
+      const year = date.getUTCFullYear();
+      // O mês é base 0, então +1
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    }
+
+    // Se for uma string no formato dd/mm/yyyy
+    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+      const [day, month, year] = value.split('/');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Se for um objeto Date
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const day = String(value.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Tenta fallback com Date parse normal
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+
+    return '';
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,10 +147,7 @@ export function ImportacaoXLSX({
           return;
         }
 
-        if (!row['Número da Revisão'] || !row['Dt. Prevista Entrega'] || !row.Justificativa) {
-          errors.push(`Linha ${index + 2}: Campos obrigatórios faltando`);
-          return;
-        }
+        // Validação de campos obrigatórios feita mais abaixo após formatação das datas
 
         const numeroRevisao = parseInt(row['Número da Revisão']);
         if (isNaN(numeroRevisao)) {
@@ -134,9 +182,18 @@ export function ImportacaoXLSX({
           return;
         }
 
-        const dataPrevistaAnalise = calcularDataPrevistaAnalise(row['Dt. de Entrega']);
-        const statusEntrega = calcularStatusEntrega(row['Dt. Prevista Entrega'], row['Dt. de Entrega']);
-        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, row['Data de Análise']);
+        const dtPrevistaEntrega = formatDateForInput(row['Dt. Prevista Entrega']);
+        const dtEntrega = formatDateForInput(row['Dt. de Entrega']);
+        const dtAnalise = formatDateForInput(row['Data de Análise']);
+
+        if (!numeroRevisao || !dtPrevistaEntrega || !row.Justificativa) {
+          errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão, Dt Prevista Entrega ou Justificativa)`);
+          return;
+        }
+
+        const dataPrevistaAnalise = calcularDataPrevistaAnalise(dtEntrega);
+        const statusEntrega = calcularStatusEntrega(dtPrevistaEntrega, dtEntrega);
+        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, dtAnalise);
 
         newRevisoes.push({
           id: crypto.randomUUID(),
@@ -145,10 +202,10 @@ export function ImportacaoXLSX({
           disciplinaId,
           projetistaId,
           numeroRevisao,
-          dataPrevistaEntrega: row['Dt. Prevista Entrega'],
-          dataEntrega: row['Dt. de Entrega'] || undefined,
+          dataPrevistaEntrega: dtPrevistaEntrega,
+          dataEntrega: dtEntrega || undefined,
           dataPrevistaAnalise,
-          dataAnalise: row['Data de Análise'] || undefined,
+          dataAnalise: dtAnalise || undefined,
           justificativa: row.Justificativa,
           statusEntrega,
           statusAnalise,
