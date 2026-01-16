@@ -141,8 +141,11 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
           }
         }
 
-        // 2. Validar nome obrigatório
-        if (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === '')) {
+        // 2. Validar nome obrigatório SOMENTE se a coluna existir
+        if (
+          'Nome' in row &&
+          (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === ''))
+        ) {
           errors.push(`Linha ${index + 2}: Nome é obrigatório`);
           return;
         }
