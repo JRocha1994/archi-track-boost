@@ -71,20 +71,38 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
       const errors: string[] = [];
 
       // Função auxiliar para formatar datas
+      // Função auxiliar para formatar datas (Versão Robusta)
       const formatarData = (valor: any) => {
-        if (valor === null || valor === undefined) return null;
+        if (valor === null || valor === undefined || valor === '') return null;
+
+        // Se já for objeto Date
+        if (valor instanceof Date) {
+          return !isNaN(valor.getTime()) ? valor.toISOString().split('T')[0] : null;
+        }
 
         // Se for número (serial do Excel)
         if (typeof valor === 'number') {
+          // Serial muito baixo (ex: 0) pode ser inválido para nossos fins
+          if (valor < 1) return null;
           // Ajuste de timezone: +12h para garantir o dia correto
           const data = new Date(Math.round((valor - 25569) * 86400 * 1000) + (12 * 3600 * 1000));
           return !isNaN(data.getTime()) ? data.toISOString().split('T')[0] : null;
         }
 
-        // Se for string DD/MM/YYYY
-        if (typeof valor === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(valor)) {
-          const [dia, mes, ano] = valor.split('/');
-          return `${ano}-${mes}-${dia}`;
+        // Se for string
+        if (typeof valor === 'string') {
+          const valorLimpo = valor.trim();
+
+          // Tenta formato ISO YYYY-MM-DD direto
+          if (/^\d{4}-\d{2}-\d{2}/.test(valorLimpo)) {
+            return valorLimpo.substring(0, 10);
+          }
+
+          // Formato PT-BR DD/MM/YYYY (aceita dias/meses com 1 digito)
+          if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(valorLimpo)) {
+            const [dia, mes, ano] = valorLimpo.split('/');
+            return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+          }
         }
 
         return valor;
