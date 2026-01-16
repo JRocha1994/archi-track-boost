@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 interface ImportacaoGenericaProps<T> {
-  tipo: 'empreendimento' | 'obra' | 'disciplina' | 'projetista' | 'revisao';
+  tipo: 'empreendimento' | 'obra' | 'disciplina' | 'projetista';
   onImport: (items: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'userId'>[]) => void;
   empreendimentos?: Array<{ id: string; nome: string }>;
 }
@@ -41,20 +41,6 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
           colunas: ['Nome'],
           exemplo: [{ Nome: 'João Silva' }],
           nomeArquivo: 'template_projetistas.xlsx',
-        };
-      case 'revisao':
-        return {
-          colunas: ['Empreendimento', 'Obra', 'Disciplina', 'Projetista', 'Número da Revisão', 'Dt. Prevista Entreg', 'Justificativa'],
-          exemplo: [{
-            Empreendimento: 'Nome do Empreendimento',
-            Obra: 'Nome da Obra',
-            Disciplina: 'Nome da Disciplina',
-            Projetista: 'Nome do Projetista',
-            'Número da Revisão': 0,
-            'Dt. Prevista Entreg': '2025-12-31',
-            Justificativa: 'Emissão Inicial'
-          }],
-          nomeArquivo: 'template_revisoes.xlsx',
         };
     }
   };
@@ -136,33 +122,15 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
           }
         });
 
-        // 2. Validações específicas por tipo
-        if (tipo === 'revisao') {
-          // Para revisão, 'Nome' não é obrigatório, mas 'Número da Revisão' é
-          const numRevisao = row['Número da Revisão'];
-
-          // Validação ESTRITA para aceitar 0
-          if (numRevisao === undefined || numRevisao === null || numRevisao === '') {
-            errors.push(`Linha ${index + 2}: Número da Revisão é obrigatório`);
-            return;
-          }
-
-          // Opcional: Validar se é número
-          if (isNaN(Number(numRevisao)) || Number(numRevisao) < 0) {
-            errors.push(`Linha ${index + 2}: Número da Revisão deve ser um número válido (>= 0)`);
-            return;
-          }
-        } else {
-          // Para os outros tipos, Nome mantém-se obrigatório
-          if (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === '')) {
-            errors.push(`Linha ${index + 2}: Nome é obrigatório`);
-            return;
-          }
+        // 2. Validar nome obrigatório
+        if (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === '')) {
+          errors.push(`Linha ${index + 2}: Nome é obrigatório`);
+          return;
         }
 
         const item: any = {
           ...row, // Inclui todos os campos processados
-          nome: row.Nome ? String(row.Nome).trim() : undefined, // Nome pode ser undefined na revisão
+          nome: String(row.Nome).trim(),
         };
 
         // 3. Para obras, validar e buscar empreendimento
@@ -234,7 +202,6 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
       case 'obra': return 'obra';
       case 'disciplina': return 'disciplina';
       case 'projetista': return 'projetista';
-      case 'revisao': return 'revisão';
     }
   };
 
@@ -244,7 +211,6 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
       case 'obra': return 'obras';
       case 'disciplina': return 'disciplinas';
       case 'projetista': return 'projetistas';
-      case 'revisao': return 'revisões';
     }
   };
 
@@ -287,8 +253,7 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
         <p className="font-medium">Instruções:</p>
         <ol className="list-decimal list-inside space-y-1">
           <li>Baixe o template Excel clicando no botão acima</li>
-          {tipo !== 'revisao' && <li>Preencha a coluna "Nome" com os dados</li>}
-          {tipo === 'revisao' && <li>Preencha as colunas conforme o template (Empreendimento, Obra, etc)</li>}
+          <li>Preencha a coluna "Nome" com os dados</li>
           {tipo === 'obra' && (
             <li>Preencha a coluna "Empreendimento" com o nome exato de um empreendimento cadastrado</li>
           )}
