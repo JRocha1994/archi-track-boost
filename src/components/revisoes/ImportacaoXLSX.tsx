@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
 
 interface ImportacaoXLSXProps {
+  revisoes: Revisao[];
   setRevisoes: (fn: (prev: Revisao[]) => Revisao[]) => void;
   empreendimentos: Empreendimento[];
   obras: Obra[];
@@ -16,6 +17,7 @@ interface ImportacaoXLSXProps {
 }
 
 export function ImportacaoXLSX({
+  revisoes,
   setRevisoes,
   empreendimentos,
   obras,
@@ -45,7 +47,7 @@ export function ImportacaoXLSX({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
     XLSX.writeFile(wb, 'template_revisoes.xlsx');
-    
+
     toast({ title: 'Template baixado com sucesso' });
   };
 
@@ -104,6 +106,33 @@ export function ImportacaoXLSX({
           return;
         }
 
+        // Validação de Duplicidade (Banco de Dados e Arquivo Atual)
+        const existeNoBanco = revisoes.some(r =>
+          r.empreendimentoId === empreendimentoId &&
+          r.obraId === obraId &&
+          r.disciplinaId === disciplinaId &&
+          r.projetistaId === projetistaId &&
+          r.numeroRevisao === numeroRevisao
+        );
+
+        const duplicadaNoArquivo = newRevisoes.some(r =>
+          r.empreendimentoId === empreendimentoId &&
+          r.obraId === obraId &&
+          r.disciplinaId === disciplinaId &&
+          r.projetistaId === projetistaId &&
+          r.numeroRevisao === numeroRevisao
+        );
+
+        if (existeNoBanco) {
+          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} já existe no sistema para este conjunto.`);
+          return;
+        }
+
+        if (duplicadaNoArquivo) {
+          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} duplicada dentro do próprio arquivo.`);
+          return;
+        }
+
         const dataPrevistaAnalise = calcularDataPrevistaAnalise(row['Dt. de Entrega']);
         const statusEntrega = calcularStatusEntrega(row['Dt. Prevista Entrega'], row['Dt. de Entrega']);
         const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, row['Data de Análise']);
@@ -126,31 +155,37 @@ export function ImportacaoXLSX({
         });
       });
 
-      if (newRevisoes.length > 0) {
-        setRevisoes((prev) => [...prev, ...newRevisoes]);
-        toast({ 
-          title: `${newRevisoes.length} revisão(ões) importada(s) com sucesso`,
-          description: errors.length > 0 ? `${errors.length} linha(s) com erro. Verifique o console para detalhes.` : undefined,
-        });
-      }
-
       if (errors.length > 0) {
         console.error('Erros na importação:', errors);
-        
-        // Mostrar os primeiros 5 erros no toast
+
+        // Mostrar o primeiro erro como exemplo
         const primeiroErro = errors[0];
         toast({
-          title: `${errors.length} erro(s) encontrado(s)`,
-          description: `Exemplo: ${primeiroErro}. Verifique se os nomes cadastrados correspondem exatamente aos do arquivo.`,
+          title: `Importação Falhou: ${errors.length} erro(s) detectado(s)`,
+          description: `Nenhuma revisão foi importada. Ex: ${primeiroErro}. Corrija a planilha.`,
           variant: 'destructive',
+        });
+        return; // ABORTA: não salva nada se tiver erro
+      }
+
+      if (newRevisoes.length > 0) {
+        setRevisoes((prev) => [...prev, ...newRevisoes]);
+        toast({
+          title: 'Importação realizada com sucesso!',
+          description: `${newRevisoes.length} novas revisões foram adicionadas.`,
+        });
+      } else {
+        toast({
+          title: 'Arquivo vazio ou sem dados válidos',
+          description: 'Nenhuma revisão encontrada para importar.',
         });
       }
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
-      toast({ 
-        title: 'Erro ao importar arquivo', 
+      toast({
+        title: 'Erro ao importar arquivo',
         description: 'Verifique se o formato está correto',
-        variant: 'destructive' 
+        variant: 'destructive'
       });
     } finally {
       setIsProcessing(false);
@@ -171,13 +206,13 @@ export function ImportacaoXLSX({
               Baixe o template, preencha com os dados e faça o upload
             </p>
           </div>
-          
+
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleDownloadTemplate}>
               <Download className="mr-2 h-4 w-4" />
               Baixar Template
             </Button>
-            
+
             <input
               ref={fileInputRef}
               type="file"
@@ -185,7 +220,7 @@ export function ImportacaoXLSX({
               onChange={handleFileUpload}
               className="hidden"
             />
-            
+
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}

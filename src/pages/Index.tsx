@@ -149,7 +149,7 @@ export default function Index() {
               <TabsTrigger value="formulario">Formulário</TabsTrigger>
               <TabsTrigger value="importacao">Importar XLSX</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="tabela" className="mt-6">
               <RevisoesTable
                 revisoes={revisoes}
@@ -160,7 +160,7 @@ export default function Index() {
                 projetistas={projetistas}
               />
             </TabsContent>
-            
+
             <TabsContent value="formulario" className="mt-6">
               <RevisaoForm
                 revisoes={revisoes}
@@ -171,9 +171,10 @@ export default function Index() {
                 projetistas={projetistas}
               />
             </TabsContent>
-            
+
             <TabsContent value="importacao" className="mt-6">
               <ImportacaoXLSX
+                revisoes={revisoes}
                 setRevisoes={setRevisoes}
                 empreendimentos={empreendimentos}
                 obras={obras}
