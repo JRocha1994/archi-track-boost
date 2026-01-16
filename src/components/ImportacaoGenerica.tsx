@@ -51,7 +51,7 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
     XLSX.writeFile(wb, config.nomeArquivo);
-    
+
     toast({ title: 'Template baixado com sucesso' });
   };
 
@@ -70,26 +70,78 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
       const items: any[] = [];
       const errors: string[] = [];
 
-      jsonData.forEach((row: any, index: number) => {
-        // Validar nome obrigatório
-        if (!row.Nome || row.Nome.trim() === '') {
+      // Função auxiliar para formatar datas
+      const formatarData = (valor: any) => {
+        if (valor === null || valor === undefined) return null;
+
+        // Se for número (serial do Excel)
+        if (typeof valor === 'number') {
+          // Ajuste de timezone: +12h para garantir o dia correto
+          const data = new Date(Math.round((valor - 25569) * 86400 * 1000) + (12 * 3600 * 1000));
+          return !isNaN(data.getTime()) ? data.toISOString().split('T')[0] : null;
+        }
+
+        // Se for string DD/MM/YYYY
+        if (typeof valor === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(valor)) {
+          const [dia, mes, ano] = valor.split('/');
+          return `${ano}-${mes}-${dia}`;
+        }
+
+        return valor;
+      };
+
+      jsonData.forEach((rawRow: any, index: number) => {
+        // 1. Processar a linha para aplicar as correções (Datas e Zeros)
+        const row: any = {};
+
+        Object.keys(rawRow).forEach((key) => {
+          const valor = rawRow[key];
+
+          // Preservar o Zero (0) para não ser tratado como falso/null
+          if (valor === 0) {
+            row[key] = 0;
+            return;
+          }
+
+          // Heurística para identificar colunas de data
+          const keyLower = key.toLowerCase();
+          const pareceData =
+            keyLower.includes('data') ||
+            keyLower.includes('dt.') ||
+            keyLower.includes('date') ||
+            keyLower.includes('criacao') ||
+            keyLower.includes('prevista') ||
+            keyLower.includes('vencimento') ||
+            keyLower.includes('prazo');
+
+          if (pareceData) {
+            const dataFormatada = formatarData(valor);
+            row[key] = dataFormatada || valor;
+          } else {
+            row[key] = valor;
+          }
+        });
+
+        // 2. Validar nome obrigatório
+        if (!row.Nome || (typeof row.Nome === 'string' && row.Nome.trim() === '')) {
           errors.push(`Linha ${index + 2}: Nome é obrigatório`);
           return;
         }
 
         const item: any = {
-          nome: row.Nome.trim(),
+          ...row, // Inclui todos os campos processados
+          nome: String(row.Nome).trim(),
         };
 
-        // Para obras, validar e buscar empreendimento
+        // 3. Para obras, validar e buscar empreendimento
         if (tipo === 'obra') {
-          if (!row.Empreendimento || row.Empreendimento.trim() === '') {
+          if (!row.Empreendimento || (typeof row.Empreendimento === 'string' && row.Empreendimento.trim() === '')) {
             errors.push(`Linha ${index + 2}: Empreendimento é obrigatório`);
             return;
           }
 
           const empreendimento = empreendimentos?.find(
-            e => e.nome.toLowerCase() === row.Empreendimento.trim().toLowerCase()
+            e => e.nome.toLowerCase() === String(row.Empreendimento).trim().toLowerCase()
           );
 
           if (!empreendimento) {
@@ -105,7 +157,7 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
 
       if (items.length > 0) {
         onImport(items);
-        toast({ 
+        toast({
           title: `${items.length} ${getTipoPlural()} importado(s) com sucesso`,
           description: errors.length > 0 ? `${errors.length} linha(s) com erro` : undefined,
         });
@@ -113,7 +165,7 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
 
       if (errors.length > 0) {
         console.error('Erros na importação:', errors);
-        
+
         const primeiroErro = errors[0];
         toast({
           title: `${errors.length} erro(s) encontrado(s)`,
@@ -131,10 +183,10 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
       }
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
-      toast({ 
-        title: 'Erro ao importar arquivo', 
+      toast({
+        title: 'Erro ao importar arquivo',
         description: 'Verifique se o formato está correto',
-        variant: 'destructive' 
+        variant: 'destructive'
       });
     } finally {
       setIsProcessing(false);
@@ -172,13 +224,13 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
             Baixe o template, preencha com os dados e faça o upload
           </p>
         </div>
-        
+
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleDownloadTemplate}>
             <Download className="mr-2 h-4 w-4" />
             Baixar Template
           </Button>
-          
+
           <input
             ref={fileInputRef}
             type="file"
@@ -186,7 +238,7 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
             onChange={handleFileUpload}
             className="hidden"
           />
-          
+
           <Button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
