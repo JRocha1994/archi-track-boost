@@ -103,7 +103,7 @@ export default function Obras() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome.trim() || !empreendimentoId) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
@@ -139,7 +139,7 @@ export default function Obras() {
           createdAt: data.created_at,
         };
 
-        setObras(obras.map(item => 
+        setObras(obras.map(item =>
           item.id === updated.id ? updated : item
         ));
         toast({ title: 'Obra atualizada com sucesso' });
@@ -327,7 +327,7 @@ export default function Obras() {
             <TabsTrigger value="lista">Lista</TabsTrigger>
             <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lista" className="mt-4">
             {obras.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -365,12 +365,13 @@ export default function Obras() {
               </Table>
             )}
           </TabsContent>
-          
+
           <TabsContent value="importar" className="mt-4">
             <ImportacaoGenerica<Obra>
               tipo="obra"
               onImport={handleImport}
               empreendimentos={empreendimentos}
+              existingData={obras}
             />
           </TabsContent>
         </Tabs>

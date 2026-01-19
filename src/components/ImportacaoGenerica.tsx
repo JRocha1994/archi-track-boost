@@ -9,9 +9,11 @@ interface ImportacaoGenericaProps<T> {
   tipo: 'empreendimento' | 'obra' | 'disciplina' | 'projetista';
   onImport: (items: Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'userId'>[]) => void;
   empreendimentos?: Array<{ id: string; nome: string }>;
+  // Dados existentes para validação de duplicidade
+  existingData?: Array<{ id: string; nome: string; empreendimentoId?: string }>;
 }
 
-export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: ImportacaoGenericaProps<T>) {
+export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos, existingData = [] }: ImportacaoGenericaProps<T>) {
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -213,11 +215,57 @@ export function ImportacaoGenerica<T>({ tipo, onImport, empreendimentos }: Impor
         items.push(item);
       });
 
-      if (items.length > 0) {
-        onImport(items);
+      // Filtrar itens duplicados (já existentes no sistema)
+      const itemsNovos: any[] = [];
+      const itemsDuplicados: string[] = [];
+
+      items.forEach((item: any) => {
+        let isDuplicate = false;
+
+        if (tipo === 'obra') {
+          // Para obras: verifica combinação Nome + EmpreendimentoId
+          isDuplicate = existingData.some(
+            (existing) =>
+              existing.nome.toLowerCase() === item.nome.toLowerCase() &&
+              existing.empreendimentoId === item.empreendimentoId
+          );
+        } else {
+          // Para empreendimentos, disciplinas, projetistas: verifica apenas Nome
+          isDuplicate = existingData.some(
+            (existing) => existing.nome.toLowerCase() === item.nome.toLowerCase()
+          );
+        }
+
+        if (isDuplicate) {
+          itemsDuplicados.push(item.nome);
+        } else {
+          // Verificar também duplicatas dentro do próprio arquivo
+          const jaAdicionado = tipo === 'obra'
+            ? itemsNovos.some(
+              (i) => i.nome.toLowerCase() === item.nome.toLowerCase() && i.empreendimentoId === item.empreendimentoId
+            )
+            : itemsNovos.some((i) => i.nome.toLowerCase() === item.nome.toLowerCase());
+
+          if (!jaAdicionado) {
+            itemsNovos.push(item);
+          } else {
+            itemsDuplicados.push(item.nome + ' (duplicado no arquivo)');
+          }
+        }
+      });
+
+      if (itemsNovos.length > 0) {
+        onImport(itemsNovos);
         toast({
-          title: `${items.length} ${getTipoPlural()} importado(s) com sucesso`,
-          description: errors.length > 0 ? `${errors.length} linha(s) com erro` : undefined,
+          title: `${itemsNovos.length} ${getTipoPlural()} importado(s) com sucesso`,
+          description: itemsDuplicados.length > 0
+            ? `${itemsDuplicados.length} item(ns) ignorados por já existirem no sistema.`
+            : undefined,
+        });
+      } else if (itemsDuplicados.length > 0 && errors.length === 0) {
+        toast({
+          title: 'Nenhum item novo para importar',
+          description: `Todos os ${itemsDuplicados.length} itens já existem no sistema.`,
         });
       }
 

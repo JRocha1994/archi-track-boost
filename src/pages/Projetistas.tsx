@@ -66,7 +66,7 @@ export default function Projetistas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome.trim()) {
       toast({ title: 'Nome obrigatório', variant: 'destructive' });
       return;
@@ -104,7 +104,7 @@ export default function Projetistas() {
           createdAt: data.created_at,
         };
 
-        setProjetistas(projetistas.map(item => 
+        setProjetistas(projetistas.map(item =>
           item.id === updated.id ? updated : item
         ));
         toast({ title: 'Projetista atualizado com sucesso' });
@@ -244,11 +244,11 @@ export default function Projetistas() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { 
-                setEditingItem(null); 
-                setNome(''); 
-                setEmail(''); 
-                setTelefone(''); 
+              <Button onClick={() => {
+                setEditingItem(null);
+                setNome('');
+                setEmail('');
+                setTelefone('');
               }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar
@@ -303,7 +303,7 @@ export default function Projetistas() {
             <TabsTrigger value="lista">Lista</TabsTrigger>
             <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lista" className="mt-4">
             {projetistas.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -341,11 +341,12 @@ export default function Projetistas() {
               </Table>
             )}
           </TabsContent>
-          
+
           <TabsContent value="importar" className="mt-4">
             <ImportacaoGenerica<Projetista>
               tipo="projetista"
               onImport={handleImport}
+              existingData={projetistas}
             />
           </TabsContent>
         </Tabs>

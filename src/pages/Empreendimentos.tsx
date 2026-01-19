@@ -62,7 +62,7 @@ export default function Empreendimentos() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome.trim()) {
       toast({ title: 'Nome obrigatório', variant: 'destructive' });
       return;
@@ -96,7 +96,7 @@ export default function Empreendimentos() {
           createdAt: data.created_at,
         };
 
-        setEmpreendimentos(empreendimentos.map(item => 
+        setEmpreendimentos(empreendimentos.map(item =>
           item.id === updated.id ? updated : item
         ));
         toast({ title: 'Empreendimento atualizado com sucesso' });
@@ -261,7 +261,7 @@ export default function Empreendimentos() {
             <TabsTrigger value="lista">Lista</TabsTrigger>
             <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lista" className="mt-4">
             {empreendimentos.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -297,11 +297,12 @@ export default function Empreendimentos() {
               </Table>
             )}
           </TabsContent>
-          
+
           <TabsContent value="importar" className="mt-4">
             <ImportacaoGenerica<Empreendimento>
               tipo="empreendimento"
               onImport={handleImport}
+              existingData={empreendimentos}
             />
           </TabsContent>
         </Tabs>

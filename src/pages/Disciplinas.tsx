@@ -62,7 +62,7 @@ export default function Disciplinas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nome.trim()) {
       toast({ title: 'Nome obrigatório', variant: 'destructive' });
       return;
@@ -96,7 +96,7 @@ export default function Disciplinas() {
           createdAt: data.created_at,
         };
 
-        setDisciplinas(disciplinas.map(item => 
+        setDisciplinas(disciplinas.map(item =>
           item.id === updated.id ? updated : item
         ));
         toast({ title: 'Disciplina atualizada com sucesso' });
@@ -261,7 +261,7 @@ export default function Disciplinas() {
             <TabsTrigger value="lista">Lista</TabsTrigger>
             <TabsTrigger value="importar">Importar XLSX</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="lista" className="mt-4">
             {disciplinas.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -297,11 +297,12 @@ export default function Disciplinas() {
               </Table>
             )}
           </TabsContent>
-          
+
           <TabsContent value="importar" className="mt-4">
             <ImportacaoGenerica<Disciplina>
               tipo="disciplina"
               onImport={handleImport}
+              existingData={disciplinas}
             />
           </TabsContent>
         </Tabs>
