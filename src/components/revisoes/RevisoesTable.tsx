@@ -770,7 +770,7 @@ export function RevisoesTable({
         </Button>
       </div>
 
-      <div className="border rounded-lg overflow-auto">
+      <div className="border rounded-lg overflow-auto max-h-[70vh]">
         <Table>
           <TableHeader>
             <TableRow>

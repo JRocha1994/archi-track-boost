@@ -56,7 +56,8 @@ export default function Index() {
         supabase
           .from('revisoes')
           .select('*')
-          .order('created_at', { ascending: true }),
+          .order('created_at', { ascending: true })
+          .range(0, 9999),
       ]);
 
       if (empRes.error) throw empRes.error;
