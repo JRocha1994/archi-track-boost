@@ -36,7 +36,7 @@ export default function Index() {
         return;
       }
 
-      const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
+      const [empRes, obrasRes, discRes, projRes] = await Promise.all([
         supabase
           .from('empreendimentos')
           .select('*')
@@ -53,12 +53,32 @@ export default function Index() {
           .from('projetistas')
           .select('*')
           .order('created_at', { ascending: true }),
-        supabase
+      ]);
+
+      // Busca paginada para revisões (superar limite de 1000 registros)
+      let allRevisoes: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+
+      while (true) {
+        const { data, error } = await supabase
           .from('revisoes')
           .select('*')
           .order('created_at', { ascending: true })
-          .range(0, 9999),
-      ]);
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+
+        if (data) {
+          allRevisoes = [...allRevisoes, ...data];
+          if (data.length < pageSize) break;
+          from += pageSize;
+        } else {
+          break;
+        }
+      }
+
+      const revRes = { data: allRevisoes, error: null };
 
       if (empRes.error) throw empRes.error;
       if (obrasRes.error) throw obrasRes.error;
