@@ -186,8 +186,8 @@ export function ImportacaoXLSX({
         const dtEntrega = formatDateForInput(row['Dt. de Entrega']);
         const dtAnalise = formatDateForInput(row['Data de Análise']);
 
-        if (!numeroRevisao || !dtPrevistaEntrega || !row.Justificativa) {
-          errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão, Dt Prevista Entrega ou Justificativa)`);
+        if (!numeroRevisao || !dtPrevistaEntrega) {
+          errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão ou Dt Prevista Entrega)`);
           return;
         }
 
@@ -206,7 +206,7 @@ export function ImportacaoXLSX({
           dataEntrega: dtEntrega || undefined,
           dataPrevistaAnalise,
           dataAnalise: dtAnalise || undefined,
-          justificativa: row.Justificativa,
+          justificativa: row.Justificativa || '',
           statusEntrega,
           statusAnalise,
           createdAt: new Date().toISOString(),
