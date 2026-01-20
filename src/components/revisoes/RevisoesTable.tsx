@@ -785,9 +785,9 @@ export function RevisoesTable({
         </Button>
       </div>
 
-      <div className="border rounded-lg overflow-auto max-h-[70vh]">
+      <div className="border rounded-lg overflow-x-scroll overflow-y-auto max-h-[55vh] bg-card">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
             <TableRow>
               <TableHead className="min-w-[150px]">
                 <div className="flex items-center gap-1">
