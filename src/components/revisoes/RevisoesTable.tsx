@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Trash2, Save, Copy, Edit, X, Maximize2, Minimize2, FilterX, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Save, Copy, Edit, X, Maximize2, Minimize2, FilterX, Download, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import { ColumnFilter } from './ColumnFilter';
@@ -189,6 +189,15 @@ export function RevisoesTable({
       return { key, direction: 'asc' };
     });
   };
+
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
+
+  // Resetar para página 1 quando filtros mudam
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const getNome = (id: string, list: any[]) => list.find(item => item.id === id)?.nome || '';
 
@@ -645,6 +654,12 @@ export function RevisoesTable({
     XLSX.utils.book_append_sheet(wb, ws, 'Revisoes');
     XLSX.writeFile(wb, 'revisoes_export.xlsx');
   };
+
+  // Lógica de Paginação
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = sortedRevisoes.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(sortedRevisoes.length / rowsPerPage);
 
   return (
     <div className={isFullscreen ? "fixed inset-0 z-50 bg-background p-6 overflow-auto" : "space-y-4"}>
@@ -1113,7 +1128,7 @@ export function RevisoesTable({
               </TableRow>
             )}
 
-            {sortedRevisoes.map((revisao) => {
+            {currentRows.map((revisao) => {
               const isEditing = editingRows[revisao.id];
               const editData = isEditing || revisao;
 
@@ -1387,6 +1402,58 @@ export function RevisoesTable({
             })}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-between py-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Page</span>
+            <Input
+              className="h-8 w-12 text-center p-0"
+              value={currentPage}
+              onChange={(e) => {
+                const page = parseInt(e.target.value);
+                if (!isNaN(page) && page >= 1 && page <= totalPages) setCurrentPage(page);
+              }}
+            />
+            <span className="text-muted-foreground">of {totalPages}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <Select value={String(rowsPerPage)} onValueChange={(v) => {
+            setRowsPerPage(Number(v));
+            setCurrentPage(1);
+          }}>
+            <SelectTrigger className="h-8 w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="100">100 rows</SelectItem>
+              <SelectItem value="500">500 rows</SelectItem>
+              <SelectItem value="1000">1000 rows</SelectItem>
+            </SelectContent>
+          </Select>
+          <span>{sortedRevisoes.length.toLocaleString()} records</span>
+        </div>
       </div>
     </div>
   );
