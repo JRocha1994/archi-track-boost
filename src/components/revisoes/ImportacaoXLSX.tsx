@@ -64,45 +64,50 @@ export function ImportacaoXLSX({
   function formatDateForInput(value: any): string {
     if (!value) return '';
 
-    // Se já for uma string no formato yyyy-MM-dd, retorna diretamente
+    let result = '';
+
+    // Se já for uma string no formato yyyy-MM-dd
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return value;
+      result = value;
     }
-
     // Se for um número (serial do Excel)
-    if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
+    else if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value))) {
       const numericValue = typeof value === 'number' ? value : parseInt(value, 10);
-
-      // Seriais do Excel começam em 1900-01-01 (serial = 1)
-      const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // 30/12/1899
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
       const date = new Date(excelEpoch.getTime() + numericValue * 24 * 60 * 60 * 1000);
-
       const year = date.getUTCFullYear();
-      // O mês é base 0, então +1
       const month = String(date.getUTCMonth() + 1).padStart(2, '0');
       const day = String(date.getUTCDate()).padStart(2, '0');
-
-      return `${year}-${month}-${day}`;
+      result = `${year}-${month}-${day}`;
     }
-
     // Se for uma string no formato dd/mm/yyyy
-    if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+    else if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
       const [day, month, year] = value.split('/');
-      return `${year}-${month}-${day}`;
+      result = `${year}-${month}-${day}`;
     }
-
     // Se for um objeto Date
-    if (value instanceof Date && !isNaN(value.getTime())) {
+    else if (value instanceof Date && !isNaN(value.getTime())) {
       const year = value.getFullYear();
       const month = String(value.getMonth() + 1).padStart(2, '0');
       const day = String(value.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      result = `${year}-${month}-${day}`;
+    }
+    // Tenta fallback
+    else {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        result = parsed.toISOString().split('T')[0];
+      }
     }
 
-    // Tenta fallback com Date parse normal
-    const parsed = new Date(value);
-    if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString().split('T')[0];
+    // Validação rigorosa: A data existe no calendário?
+    if (result) {
+      const [y, m, d] = result.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      // Verifica se o JS não fez rollover (ex: 30/02 -> 02/03)
+      if (dateObj.getFullYear() === y && dateObj.getMonth() === m - 1 && dateObj.getDate() === d) {
+        return result;
+      }
     }
 
     return '';
@@ -185,6 +190,20 @@ export function ImportacaoXLSX({
         const dtPrevistaEntrega = formatDateForInput(row['Dt. Prevista Entrega']);
         const dtEntrega = formatDateForInput(row['Dt. de Entrega']);
         const dtAnalise = formatDateForInput(row['Data de Análise']);
+
+        // Validações de datas inválidas (ex: 30 de Fevereiro)
+        if (row['Dt. Prevista Entrega'] && !dtPrevistaEntrega) {
+          errors.push(`Linha ${index + 2}: Data Prevista Entrega inválida ou inexistente ("${row['Dt. Prevista Entrega']}")`);
+          return;
+        }
+        if (row['Dt. de Entrega'] && !dtEntrega) {
+          errors.push(`Linha ${index + 2}: Data de Entrega inválida ou inexistente ("${row['Dt. de Entrega']}")`);
+          return;
+        }
+        if (row['Data de Análise'] && !dtAnalise) {
+          errors.push(`Linha ${index + 2}: Data de Análise inválida ou inexistente ("${row['Data de Análise']}")`);
+          return;
+        }
 
         if (!numeroRevisao || !dtPrevistaEntrega) {
           errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão ou Dt Prevista Entrega)`);
