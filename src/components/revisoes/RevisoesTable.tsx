@@ -199,6 +199,8 @@ export function RevisoesTable({
     setCurrentPage(1);
   }, [filters]);
 
+
+
   const getNome = (id: string, list: any[]) => list.find(item => item.id === id)?.nome || '';
 
   // Valores únicos para filtros
@@ -342,6 +344,65 @@ export function RevisoesTable({
 
     return sorted;
   }, [filteredRevisoes, sortConfig, empreendimentos, obras, disciplinas, projetistas]);
+
+  // Lógica de Paginação
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = sortedRevisoes.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(sortedRevisoes.length / rowsPerPage);
+
+  // Estado de seleção de linhas
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+
+  // Limpar seleção quando filtros ou página mudam
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [filters, currentPage]);
+
+  // Verificar se todos da página estão selecionados
+  const allPageSelected = useMemo(() => {
+    if (currentRows.length === 0) return false;
+    return currentRows.every(row => selectedRows.has(row.id));
+  }, [currentRows, selectedRows]);
+
+  // Verificar se alguns (mas não todos) estão selecionados
+  const somePageSelected = useMemo(() => {
+    if (currentRows.length === 0) return false;
+    const selectedCount = currentRows.filter(row => selectedRows.has(row.id)).length;
+    return selectedCount > 0 && selectedCount < currentRows.length;
+  }, [currentRows, selectedRows]);
+
+  // Toggle seleção de uma linha
+  const toggleRowSelection = (id: string) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle seleção de toda a página
+  const toggleAllPageSelection = () => {
+    if (allPageSelected) {
+      // Desselecionar todos da página
+      setSelectedRows(prev => {
+        const newSet = new Set(prev);
+        currentRows.forEach(row => newSet.delete(row.id));
+        return newSet;
+      });
+    } else {
+      // Selecionar todos da página
+      setSelectedRows(prev => {
+        const newSet = new Set(prev);
+        currentRows.forEach(row => newSet.add(row.id));
+        return newSet;
+      });
+    }
+  };
 
   const hasActiveFilters = useMemo(() => {
     return filters.empreendimento.length > 0 ||
@@ -655,11 +716,6 @@ export function RevisoesTable({
     XLSX.writeFile(wb, 'revisoes_export.xlsx');
   };
 
-  // Lógica de Paginação
-  const indexOfLastRow = currentPage * rowsPerPage;
-  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = sortedRevisoes.slice(indexOfFirstRow, indexOfLastRow);
-  const totalPages = Math.ceil(sortedRevisoes.length / rowsPerPage);
 
   return (
     <div className={isFullscreen ? "fixed inset-0 z-50 bg-background p-6 overflow-auto" : "space-y-4"}>
@@ -710,6 +766,14 @@ export function RevisoesTable({
         <Table>
           <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={allPageSelected}
+                  onCheckedChange={toggleAllPageSelection}
+                  aria-label="Selecionar todos da página"
+                  className={somePageSelected ? "data-[state=checked]:bg-primary" : ""}
+                />
+              </TableHead>
               <TableHead className="min-w-[150px]">
                 <div className="flex items-center gap-1">
                   <Button
@@ -920,6 +984,7 @@ export function RevisoesTable({
           <TableBody>
             {newRow && (
               <TableRow>
+                <TableCell></TableCell>
                 <TableCell>
                   <Select
                     value={newRow.empreendimentoId}
@@ -1054,7 +1119,14 @@ export function RevisoesTable({
               const editData = isEditing || revisao;
 
               return (
-                <TableRow key={revisao.id}>
+                <TableRow key={revisao.id} className={selectedRows.has(revisao.id) ? "bg-muted/50" : ""}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedRows.has(revisao.id)}
+                      onCheckedChange={() => toggleRowSelection(revisao.id)}
+                      aria-label={`Selecionar linha ${revisao.id}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     {isEditing ? (
                       <Select
