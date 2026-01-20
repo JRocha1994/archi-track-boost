@@ -15,6 +15,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 /**
  * Converte um valor de data para o formato yyyy-MM-dd esperado pelos inputs type="date"
@@ -404,6 +412,62 @@ export function RevisoesTable({
     }
   };
 
+  // --- Bulk Edit Logic ---
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [bulkEditValues, setBulkEditValues] = useState<Partial<Revisao>>({});
+
+  const handleBulkEditOpen = () => {
+    setBulkEditValues({});
+    setIsBulkDialogOpen(true);
+  };
+
+  const handleBulkSave = async () => {
+    try {
+      if (selectedRows.size === 0) return;
+
+      const updates: any = {};
+      // Mapear campos camelCase para snake_case do banco
+      if (bulkEditValues.empreendimentoId) updates.empreendimento_id = bulkEditValues.empreendimentoId;
+      if (bulkEditValues.obraId) updates.obra_id = bulkEditValues.obraId;
+      if (bulkEditValues.disciplinaId) updates.disciplina_id = bulkEditValues.disciplinaId;
+      if (bulkEditValues.projetistaId) updates.projetista_id = bulkEditValues.projetistaId;
+      if (bulkEditValues.statusEntrega) updates.status_entrega = bulkEditValues.statusEntrega;
+      if (bulkEditValues.statusAnalise) updates.status_analise = bulkEditValues.statusAnalise;
+      if (bulkEditValues.dataPrevistaEntrega) updates.data_prevista_entrega = bulkEditValues.dataPrevistaEntrega;
+      if (bulkEditValues.dataEntrega) updates.data_entrega = bulkEditValues.dataEntrega;
+      if (bulkEditValues.dataPrevistaAnalise) updates.data_prevista_analise = bulkEditValues.dataPrevistaAnalise;
+      if (bulkEditValues.dataAnalise) updates.data_analise = bulkEditValues.dataAnalise;
+
+      if (Object.keys(updates).length === 0) {
+        setIsBulkDialogOpen(false);
+        return;
+      }
+
+      updates.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('revisoes')
+        .update(updates)
+        .in('id', Array.from(selectedRows));
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      const newRevisoes = revisoes.map(r =>
+        selectedRows.has(r.id) ? { ...r, ...bulkEditValues } : r
+      );
+
+      setRevisoes(newRevisoes);
+      setIsBulkDialogOpen(false);
+      setSelectedRows(new Set());
+      toast({ title: `${selectedRows.size} itens atualizados com sucesso` });
+
+    } catch (error) {
+      console.error('Erro ao atualizar em massa:', error);
+      toast({ title: 'Erro ao atualizar itens', variant: 'destructive' });
+    }
+  };
+
   const hasActiveFilters = useMemo(() => {
     return filters.empreendimento.length > 0 ||
       filters.obra.length > 0 ||
@@ -749,8 +813,17 @@ export function RevisoesTable({
         </div>
       </div>
 
-      {/* Limpar Filtros */}
-      <div className="flex justify-end">
+      {/* Ações em Lote e Filtros */}
+      <div className="flex justify-between items-center min-h-[40px]">
+        <div className="flex items-center gap-2">
+          {selectedRows.size > 0 && (
+            <Button onClick={handleBulkEditOpen} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 animate-in fade-in zoom-in duration-200">
+              <Edit className="mr-2 h-4 w-4" />
+              Editar Selecionados ({selectedRows.size})
+            </Button>
+          )}
+        </div>
+
         <Button
           onClick={clearAllFilters}
           size="sm"
@@ -1448,6 +1521,141 @@ export function RevisoesTable({
           <span>{sortedRevisoes.length.toLocaleString()} records</span>
         </div>
       </div>
+
+      {/* Bulk Edit Dialog */}
+      <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar {selectedRows.size} itens selecionados</DialogTitle>
+            <DialogDescription>
+              Altere apenas os campos que deseja atualizar para todos os itens selecionados. Campos vazios não serão alterados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Empreendimento */}
+              <div className="space-y-2">
+                <Label>Empreendimento</Label>
+                <Select
+                  value={bulkEditValues.empreendimentoId || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, empreendimentoId: v === "no-change" ? undefined : v, obraId: undefined }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem alteração" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    {empreendimentos.map(e => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Obra */}
+              <div className="space-y-2">
+                <Label>Obra</Label>
+                <Select
+                  value={bulkEditValues.obraId || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, obraId: v === "no-change" ? undefined : v }))}
+                  disabled={!bulkEditValues.empreendimentoId && selectedRows.size > 0}
+                >
+                  <SelectTrigger><SelectValue placeholder={bulkEditValues.empreendimentoId ? "Sem alteração" : "Selecione Emp. Primeiro"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    {bulkEditValues.empreendimentoId && obrasFiltered(bulkEditValues.empreendimentoId).map(o => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Disciplina */}
+              <div className="space-y-2">
+                <Label>Disciplina</Label>
+                <Select
+                  value={bulkEditValues.disciplinaId || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, disciplinaId: v === "no-change" ? undefined : v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem alteração" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    {disciplinas.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Projetista */}
+              <div className="space-y-2">
+                <Label>Projetista</Label>
+                <Select
+                  value={bulkEditValues.projetistaId || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, projetistaId: v === "no-change" ? undefined : v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem alteração" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    {projetistas.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Entrega */}
+              <div className="space-y-2">
+                <Label>Status Entrega</Label>
+                <Select
+                  value={bulkEditValues.statusEntrega || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, statusEntrega: v === "no-change" ? undefined : v as StatusEntrega }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem alteração" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    <SelectItem value="Entregue">Entregue</SelectItem>
+                    <SelectItem value="Não Entregue">Não Entregue</SelectItem>
+                    <SelectItem value="Entregue Parcialmente">Entregue Parcialmente</SelectItem>
+                    <SelectItem value="Não Aplicável">Não Aplicável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Análise */}
+              <div className="space-y-2">
+                <Label>Status Análise</Label>
+                <Select
+                  value={bulkEditValues.statusAnalise || "no-change"}
+                  onValueChange={(v) => setBulkEditValues(prev => ({ ...prev, statusAnalise: v === "no-change" ? undefined : v as StatusAnalise }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Sem alteração" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-change">Sem alteração</SelectItem>
+                    <SelectItem value="Aprovado">Aprovado</SelectItem>
+                    <SelectItem value="Aprovado com ressalvas">Aprovado com ressalvas</SelectItem>
+                    <SelectItem value="Reprovado">Reprovado</SelectItem>
+                    <SelectItem value="Em Análise">Em Análise</SelectItem>
+                    <SelectItem value="Não Iniciada">Não Iniciada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Datas */}
+              <div className="space-y-2">
+                <Label>Dt. Prev. Entrega</Label>
+                <Input type="date" value={formatDateForInput(bulkEditValues.dataPrevistaEntrega)} onChange={e => setBulkEditValues({ ...bulkEditValues, dataPrevistaEntrega: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dt. Entrega</Label>
+                <Input type="date" value={formatDateForInput(bulkEditValues.dataEntrega)} onChange={e => setBulkEditValues({ ...bulkEditValues, dataEntrega: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dt. Prev. Análise</Label>
+                <Input type="date" value={formatDateForInput(bulkEditValues.dataPrevistaAnalise)} onChange={e => setBulkEditValues({ ...bulkEditValues, dataPrevistaAnalise: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dat. Análise</Label>
+                <Input type="date" value={formatDateForInput(bulkEditValues.dataAnalise)} onChange={e => setBulkEditValues({ ...bulkEditValues, dataAnalise: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleBulkSave}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
