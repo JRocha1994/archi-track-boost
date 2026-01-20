@@ -54,15 +54,15 @@ export function Layout() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="px-4 flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">Gestão de Projetos Executivos</h1>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {/* User Menu */}
             <UserMenu />
-            
+
             {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild className="lg:hidden">
@@ -80,11 +80,11 @@ export function Layout() {
         </div>
       </header>
 
-      <div className="container flex gap-6 py-6 flex-1">
+      <div className="px-4 flex gap-4 py-6 flex-1">
         {/* Sidebar - Desktop */}
         <aside className={cn(
           "hidden lg:block shrink-0 transition-all duration-300",
-          sidebarCollapsed ? "w-16" : "w-64"
+          sidebarCollapsed ? "w-14" : "w-48"
         )}>
           <div className="sticky top-24 space-y-2">
             <Button
@@ -106,7 +106,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
-      
+
       <Footer />
       <OnboardingTour />
     </div>
