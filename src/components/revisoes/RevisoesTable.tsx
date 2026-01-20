@@ -437,6 +437,7 @@ export function RevisoesTable({
       if (bulkEditValues.dataEntrega) updates.data_entrega = bulkEditValues.dataEntrega;
       if (bulkEditValues.dataPrevistaAnalise) updates.data_prevista_analise = bulkEditValues.dataPrevistaAnalise;
       if (bulkEditValues.dataAnalise) updates.data_analise = bulkEditValues.dataAnalise;
+      if (bulkEditValues.justificativa) updates.justificativa = bulkEditValues.justificativa;
 
       if (Object.keys(updates).length === 0) {
         setIsBulkDialogOpen(false);
@@ -1647,6 +1648,16 @@ export function RevisoesTable({
               <div className="space-y-2">
                 <Label>Dat. Análise</Label>
                 <Input type="date" value={formatDateForInput(bulkEditValues.dataAnalise)} onChange={e => setBulkEditValues({ ...bulkEditValues, dataAnalise: e.target.value })} />
+              </div>
+
+              {/* Justificativa */}
+              <div className="space-y-2 col-span-2">
+                <Label>Justificativa</Label>
+                <Input
+                  value={bulkEditValues.justificativa || ''}
+                  onChange={e => setBulkEditValues({ ...bulkEditValues, justificativa: e.target.value })}
+                  placeholder="Digite uma justificativa..."
+                />
               </div>
             </div>
           </div>
