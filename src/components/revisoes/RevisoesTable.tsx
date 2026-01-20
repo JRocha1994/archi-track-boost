@@ -693,87 +693,8 @@ export function RevisoesTable({
         </div>
       </div>
 
-      {/* Filtros Rápidos */}
-      <div className="flex gap-4 flex-wrap items-center justify-between">
-        <div className="flex gap-4 flex-wrap items-center">
-          {/* Filtro rápido de Empreendimentos */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium whitespace-nowrap">Empreendimentos:</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 border-dashed">
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Selecionar
-                  {filters.empreendimento.length > 0 && (
-                    <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                      {filters.empreendimento.length}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64" align="start">
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">Filtrar por Empreendimento</h4>
-                  <div className="max-h-52 overflow-auto space-y-2 pr-1">
-                    {uniqueValues.empreendimento.map((nome) => {
-                      const checked = filters.empreendimento.includes(nome);
-                      return (
-                        <div key={nome} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`emp-${nome}`}
-                            checked={checked}
-                            onCheckedChange={() => {
-                              setFilters({
-                                ...filters,
-                                empreendimento: checked
-                                  ? filters.empreendimento.filter((n) => n !== nome)
-                                  : [...filters.empreendimento, nome],
-                              });
-                            }}
-                          />
-                          <Label htmlFor={`emp-${nome}`} className="text-sm font-normal cursor-pointer flex-1">
-                            {nome}
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            {filters.empreendimento.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {filters.empreendimento.map((nome) => (
-                  <div key={nome} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs">
-                    <span>{nome}</span>
-                    <button
-                      onClick={() => setFilters({
-                        ...filters,
-                        empreendimento: filters.empreendimento.filter(n => n !== nome)
-                      })}
-                      className="ml-1 hover:bg-muted rounded-sm p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <StatusMultiSelect
-            label="Status Entrega"
-            type="entrega"
-            selectedValues={filters.statusEntrega}
-            onSelectionChange={(values) => setFilters({ ...filters, statusEntrega: values as StatusEntrega[] })}
-          />
-          <StatusMultiSelect
-            label="Status Análise"
-            type="analise"
-            selectedValues={filters.statusAnalise}
-            onSelectionChange={(values) => setFilters({ ...filters, statusAnalise: values as StatusAnalise[] })}
-          />
-        </div>
+      {/* Limpar Filtros */}
+      <div className="flex justify-end">
         <Button
           onClick={clearAllFilters}
           size="sm"
