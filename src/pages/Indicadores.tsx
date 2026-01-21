@@ -32,7 +32,7 @@ export default function Indicadores() {
 
       while (hasMore) {
         const { data, error } = await supabase
-          .from(table)
+          .from(table as any)
           .select('*')
           .range(page * pageSize, (page + 1) * pageSize - 1)
           .order('created_at', { ascending: true });
