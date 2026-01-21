@@ -104,18 +104,15 @@ export function IndicadoresPPR() {
 
                 if (prevError) throw prevError;
 
-                // Carregar revisões com data de entrega em 2025
-                const { data: revisoesEntregues, error: entregaError } = await supabase
-                    .from('revisoes')
-                    .select('id, empreendimento_id, data_entrega')
-                    .gte('data_entrega', '2025-01-01')
-                    .lte('data_entrega', '2025-12-31');
-
-                if (entregaError) throw entregaError;
+                // Projetos Entregues = revisões com Data Prevista em 2025 E Data de Entrega em 2025
+                const revisoesEntregues = (revisoesPrevistas || []).filter(r => {
+                    if (!r.data_entrega) return false;
+                    return r.data_entrega >= '2025-01-01' && r.data_entrega <= '2025-12-31';
+                });
 
                 console.log('Empreendimentos:', empreendimentosData?.length);
                 console.log('Revisões com previsão em 2025:', revisoesPrevistas?.length);
-                console.log('Revisões com entrega em 2025:', revisoesEntregues?.length);
+                console.log('Revisões com previsão E entrega em 2025:', revisoesEntregues?.length);
 
                 const totalPrevisto = revisoesPrevistas?.length || 0;
                 const totalEntregue = revisoesEntregues?.length || 0;
@@ -124,13 +121,21 @@ export function IndicadoresPPR() {
 
                 // Calcular por empreendimento
                 const porEmpreendimento = (empreendimentosData || []).map(emp => {
-                    const previstosEmp = (revisoesPrevistas || []).filter(r => r.empreendimento_id === emp.id).length;
-                    const entreguesEmp = (revisoesEntregues || []).filter(r => r.empreendimento_id === emp.id).length;
-                    const percentual = previstosEmp > 0 ? (entreguesEmp / previstosEmp) * 100 : 0;
+                    // Qtd de Projetos = revisões com Data Prevista em 2025
+                    const previstosEmp = (revisoesPrevistas || []).filter(r => r.empreendimento_id === emp.id);
+                    const totalPrevistosEmp = previstosEmp.length;
+
+                    // Qtd de Projetos Entregues = revisões com Data Prevista em 2025 E Data de Entrega em 2025
+                    const entreguesEmp = previstosEmp.filter(r => {
+                        if (!r.data_entrega) return false;
+                        return r.data_entrega >= '2025-01-01' && r.data_entrega <= '2025-12-31';
+                    }).length;
+
+                    const percentual = totalPrevistosEmp > 0 ? (entreguesEmp / totalPrevistosEmp) * 100 : 0;
 
                     return {
                         nome: emp.nome,
-                        totalProjetos: previstosEmp,
+                        totalProjetos: totalPrevistosEmp,
                         projetosEntregues: entreguesEmp,
                         percentualEntregue: percentual,
                     };
