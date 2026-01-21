@@ -108,19 +108,35 @@ export function IndicadoresPPR() {
 
                 if (empError) throw empError;
 
-                // Carregar TODAS as revisões (para garantir que pegamos tudo)
-                const { data: todasRevisoes, error: revError } = await supabase
-                    .from('revisoes')
-                    .select('id, empreendimento_id, data_prevista_entrega, data_entrega');
+                // Carregar TODAS as revisões com paginação (Supabase tem limite de 1000 por query)
+                let todasRevisoes: any[] = [];
+                let page = 0;
+                const pageSize = 1000;
+                let hasMore = true;
 
-                if (revError) throw revError;
+                while (hasMore) {
+                    const { data: batch, error: revError } = await supabase
+                        .from('revisoes')
+                        .select('id, empreendimento_id, data_prevista_entrega, data_entrega')
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                    if (revError) throw revError;
+
+                    if (batch && batch.length > 0) {
+                        todasRevisoes = [...todasRevisoes, ...batch];
+                        page++;
+                        hasMore = batch.length === pageSize;
+                    } else {
+                        hasMore = false;
+                    }
+                }
 
                 console.log('=== DEBUG PPR ===');
                 console.log('Total de empreendimentos:', empreendimentosData?.length);
-                console.log('Total de revisões:', todasRevisoes?.length);
+                console.log('Total de revisões carregadas:', todasRevisoes.length);
 
                 // Exemplo de formato de data vindo do banco
-                if (todasRevisoes && todasRevisoes.length > 0) {
+                if (todasRevisoes.length > 0) {
                     console.log('Exemplo de revisão:', todasRevisoes[0]);
                 }
 
