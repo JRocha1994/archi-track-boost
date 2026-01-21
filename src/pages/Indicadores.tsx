@@ -43,7 +43,7 @@ export default function Indicadores() {
           supabase.from('obras').select('*').order('created_at', { ascending: true }),
           supabase.from('disciplinas').select('*').order('created_at', { ascending: true }),
           supabase.from('projetistas').select('*').order('created_at', { ascending: true }),
-          supabase.from('revisoes').select('*').order('created_at', { ascending: true }),
+          supabase.from('revisoes').select('*').order('created_at', { ascending: true }).range(0, 9999),
         ]);
 
         if (empRes.error) throw empRes.error;
