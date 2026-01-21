@@ -25,6 +25,7 @@ export default function Indicadores() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [projetistas, setProjetistas] = useState<Projetista[]>([]);
+  const [activeTab, setActiveTab] = useState("geral");
 
   // Estados dos Filtros
   const [selectedEmpreendimentos, setSelectedEmpreendimentos] = useState<string[]>([]);
@@ -248,7 +249,7 @@ export default function Indicadores() {
         </p>
       </div>
 
-      <Tabs defaultValue="geral" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -262,62 +263,66 @@ export default function Indicadores() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <MultiSelect
-                title="Empreendimentos"
-                options={empreendimentoOptions}
-                selected={selectedEmpreendimentos}
-                onChange={setSelectedEmpreendimentos}
-              />
-              <MultiSelect
-                title="Projetistas"
-                options={projetistaOptions}
-                selected={selectedProjetistas}
-                onChange={setSelectedProjetistas}
-              />
-              <MultiSelect
-                title="Status de Entrega"
-                options={statusOptions}
-                selected={selectedStatus}
-                onChange={setSelectedStatus}
-              />
-              <DatePickerWithRange
-                date={dateRange}
-                setDate={setDateRange}
-              />
-            </div>
+            {activeTab === 'geral' && (
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <MultiSelect
+                  title="Empreendimentos"
+                  options={empreendimentoOptions}
+                  selected={selectedEmpreendimentos}
+                  onChange={setSelectedEmpreendimentos}
+                />
+                <MultiSelect
+                  title="Projetistas"
+                  options={projetistaOptions}
+                  selected={selectedProjetistas}
+                  onChange={setSelectedProjetistas}
+                />
+                <MultiSelect
+                  title="Status de Entrega"
+                  options={statusOptions}
+                  selected={selectedStatus}
+                  onChange={setSelectedStatus}
+                />
+                <DatePickerWithRange
+                  date={dateRange}
+                  setDate={setDateRange}
+                />
+              </div>
+            )}
           </div>
 
-          <ActiveFilters
-            filters={{
-              empreendimentos: selectedEmpreendimentos,
-              projetistas: selectedProjetistas,
-              status: selectedStatus,
-              periodo: dateRange
-            }}
-            options={{
-              empreendimentos: empreendimentoOptions,
-              projetistas: projetistaOptions,
-              status: statusOptions
-            }}
-            onRemove={(type, value) => {
-              if (type === 'empreendimentos' && value) {
-                setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
-              } else if (type === 'projetistas' && value) {
-                setSelectedProjetistas(prev => prev.filter(id => id !== value));
-              } else if (type === 'status' && value) {
-                setSelectedStatus(prev => prev.filter(id => id !== value));
-              } else if (type === 'periodo') {
+          {activeTab === 'geral' && (
+            <ActiveFilters
+              filters={{
+                empreendimentos: selectedEmpreendimentos,
+                projetistas: selectedProjetistas,
+                status: selectedStatus,
+                periodo: dateRange
+              }}
+              options={{
+                empreendimentos: empreendimentoOptions,
+                projetistas: projetistaOptions,
+                status: statusOptions
+              }}
+              onRemove={(type, value) => {
+                if (type === 'empreendimentos' && value) {
+                  setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
+                } else if (type === 'projetistas' && value) {
+                  setSelectedProjetistas(prev => prev.filter(id => id !== value));
+                } else if (type === 'status' && value) {
+                  setSelectedStatus(prev => prev.filter(id => id !== value));
+                } else if (type === 'periodo') {
+                  setDateRange(undefined);
+                }
+              }}
+              onClearAll={() => {
+                setSelectedEmpreendimentos([]);
+                setSelectedProjetistas([]);
+                setSelectedStatus([]);
                 setDateRange(undefined);
-              }
-            }}
-            onClearAll={() => {
-              setSelectedEmpreendimentos([]);
-              setSelectedProjetistas([]);
-              setSelectedStatus([]);
-              setDateRange(undefined);
-            }}
-          />
+              }}
+            />
+          )}
         </div>
 
         {/* Aba Geral - Indicadores existentes */}
