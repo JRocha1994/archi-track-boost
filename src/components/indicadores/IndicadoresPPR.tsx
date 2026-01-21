@@ -65,21 +65,32 @@ function GaugeChart({ value, meta, teto }: { value: number; meta: number; teto: 
 }
 
 export function IndicadoresPPR({ revisoes, empreendimentos }: IndicadoresPPRProps) {
+    // Debug: verificar se o componente está sendo renderizado
+    console.log('=== IndicadoresPPR renderizado ===');
+    console.log('Props recebidas - revisoes:', revisoes?.length || 0, 'empreendimentos:', empreendimentos?.length || 0);
+
     // Filtrar revisões do ano de 2025
     const dadosPPR = useMemo(() => {
         const dataInicio = '2025-01-01';
         const dataFim = '2025-12-31';
 
-        // Revisões com Data Prevista Entrega entre 01/01/2025 e 31/12/2025
+        console.log('Total de revisões recebidas:', revisoes.length);
+        console.log('Total de empreendimentos:', empreendimentos.length);
+
+        // Revisões com Data Prevista Entrega no ano de 2025
         const revisoesPrevistoEm2025 = revisoes.filter(r => {
             if (!r.dataPrevistaEntrega) return false;
             return r.dataPrevistaEntrega >= dataInicio && r.dataPrevistaEntrega <= dataFim;
         });
 
-        // Das revisões previstas em 2025, quantas foram entregues (têm Data de Entrega preenchida)
-        const revisoesEntreguesEm2025 = revisoesPrevistoEm2025.filter(r => {
-            return r.dataEntrega && r.dataEntrega.length > 0;
+        // Revisões com Data de Entrega no ano de 2025
+        const revisoesEntreguesEm2025 = revisoes.filter(r => {
+            if (!r.dataEntrega) return false;
+            return r.dataEntrega >= dataInicio && r.dataEntrega <= dataFim;
         });
+
+        console.log('Revisões com previsão em 2025:', revisoesPrevistoEm2025.length);
+        console.log('Revisões com entrega em 2025:', revisoesEntreguesEm2025.length);
 
         const totalPrevisto = revisoesPrevistoEm2025.length;
         const totalEntregue = revisoesEntreguesEm2025.length;
@@ -89,21 +100,21 @@ export function IndicadoresPPR({ revisoes, empreendimentos }: IndicadoresPPRProp
         // Dados por Empreendimento
         const porEmpreendimento = empreendimentos.map(emp => {
             // Revisões do empreendimento com previsão em 2025
-            const previstosEmp = revisoesPrevistoEm2025.filter(r => r.empreendimentoId === emp.id);
-            const totalPrevistosEmp = previstosEmp.length;
+            const previstosEmp = revisoesPrevistoEm2025.filter(r => r.empreendimentoId === emp.id).length;
+            // Revisões do empreendimento com entrega em 2025
+            const entreguesEmp = revisoesEntreguesEm2025.filter(r => r.empreendimentoId === emp.id).length;
 
-            // Das previstas, quantas foram entregues
-            const entreguesEmp = previstosEmp.filter(r => r.dataEntrega && r.dataEntrega.length > 0).length;
-
-            const percentual = totalPrevistosEmp > 0 ? (entreguesEmp / totalPrevistosEmp) * 100 : 0;
+            const percentual = previstosEmp > 0 ? (entreguesEmp / previstosEmp) * 100 : 0;
 
             return {
                 nome: emp.nome,
-                totalProjetos: totalPrevistosEmp,
+                totalProjetos: previstosEmp,
                 projetosEntregues: entreguesEmp,
                 percentualEntregue: percentual,
             };
-        }).filter(item => item.totalProjetos > 0); // Apenas empreendimentos com revisões previstas
+        }).filter(item => item.totalProjetos > 0); // Apenas empreendimentos com revisões previstas em 2025
+
+        console.log('Empreendimentos com dados:', porEmpreendimento);
 
         return {
             totalPrevisto,
