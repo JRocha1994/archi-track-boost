@@ -67,18 +67,18 @@ function GaugeChart({ value, meta, teto }: { value: number; meta: number; teto: 
 export function IndicadoresPPR({ revisoes, empreendimentos }: IndicadoresPPRProps) {
     // Filtrar revisões do ano de 2025
     const dadosPPR = useMemo(() => {
-        const ano = '2025';
+        const dataInicio = '2025-01-01';
+        const dataFim = '2025-12-31';
 
-        // Revisões com Data Prevista Entrega em 2025
+        // Revisões com Data Prevista Entrega entre 01/01/2025 e 31/12/2025
         const revisoesPrevistoEm2025 = revisoes.filter(r => {
             if (!r.dataPrevistaEntrega) return false;
-            return r.dataPrevistaEntrega.startsWith(ano);
+            return r.dataPrevistaEntrega >= dataInicio && r.dataPrevistaEntrega <= dataFim;
         });
 
-        // Revisões com Data de Entrega em 2025
-        const revisoesEntreguesEm2025 = revisoes.filter(r => {
-            if (!r.dataEntrega) return false;
-            return r.dataEntrega.startsWith(ano);
+        // Das revisões previstas em 2025, quantas foram entregues (têm Data de Entrega preenchida)
+        const revisoesEntreguesEm2025 = revisoesPrevistoEm2025.filter(r => {
+            return r.dataEntrega && r.dataEntrega.length > 0;
         });
 
         const totalPrevisto = revisoesPrevistoEm2025.length;
@@ -88,13 +88,18 @@ export function IndicadoresPPR({ revisoes, empreendimentos }: IndicadoresPPRProp
 
         // Dados por Empreendimento
         const porEmpreendimento = empreendimentos.map(emp => {
-            const previstosEmp = revisoesPrevistoEm2025.filter(r => r.empreendimentoId === emp.id).length;
-            const entreguesEmp = revisoesEntreguesEm2025.filter(r => r.empreendimentoId === emp.id).length;
-            const percentual = previstosEmp > 0 ? (entreguesEmp / previstosEmp) * 100 : 0;
+            // Revisões do empreendimento com previsão em 2025
+            const previstosEmp = revisoesPrevistoEm2025.filter(r => r.empreendimentoId === emp.id);
+            const totalPrevistosEmp = previstosEmp.length;
+
+            // Das previstas, quantas foram entregues
+            const entreguesEmp = previstosEmp.filter(r => r.dataEntrega && r.dataEntrega.length > 0).length;
+
+            const percentual = totalPrevistosEmp > 0 ? (entreguesEmp / totalPrevistosEmp) * 100 : 0;
 
             return {
                 nome: emp.nome,
-                totalProjetos: previstosEmp,
+                totalProjetos: totalPrevistosEmp,
                 projetosEntregues: entreguesEmp,
                 percentualEntregue: percentual,
             };
