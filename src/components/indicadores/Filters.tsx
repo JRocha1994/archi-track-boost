@@ -373,7 +373,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
             {filters.empreendimentos.map((id) => {
                 const label = options.empreendimentos.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 bg-white border shadow-sm">
+                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
                         <span className="text-muted-foreground">Emp:</span> {label}
                         <button
                             onClick={() => onRemove('empreendimentos', id)}
@@ -389,7 +389,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
             {filters.projetistas.map((id) => {
                 const label = options.projetistas.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 bg-white border shadow-sm">
+                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
                         <span className="text-muted-foreground">Proj:</span> {label}
                         <button
                             onClick={() => onRemove('projetistas', id)}
@@ -405,7 +405,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
             {filters.status.map((id) => {
                 const label = options.status.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 bg-white border shadow-sm">
+                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
                         <span className="text-muted-foreground">Status:</span> {label}
                         <button
                             onClick={() => onRemove('status', id)}
@@ -419,7 +419,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
             })}
 
             {filters.periodo?.from && (
-                <Badge variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 bg-white border shadow-sm">
+                <Badge variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
                     <span className="text-muted-foreground">Período:</span>
                     {format(filters.periodo.from, "MMM/yyyy", { locale: ptBR })}
                     {filters.periodo.to ? ` → ${format(filters.periodo.to, "MMM/yyyy", { locale: ptBR })}` : ''}
