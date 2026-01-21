@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Empreendimento, Obra, Disciplina, Projetista, Revisao } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Building2, FileText, Layers, Users, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle, Target, BarChart3 } from 'lucide-react';
@@ -78,22 +79,27 @@ export default function Indicadores() {
           createdAt: item.created_at,
         }));
 
-        const mappedRev: Revisao[] = (revRes.data || []).map((item: any) => ({
-          id: item.id,
-          empreendimentoId: item.empreendimento_id,
-          obraId: item.obra_id,
-          disciplinaId: item.disciplina_id,
-          projetistaId: item.projetista_id,
-          numeroRevisao: item.numero_revisao,
-          dataPrevistaEntrega: item.data_prevista_entrega,
-          dataEntrega: item.data_entrega || undefined,
-          dataPrevistaAnalise: item.data_prevista_analise || undefined,
-          dataAnalise: item.data_analise || undefined,
-          justificativa: item.justificativa,
-          statusEntrega: item.status_entrega,
-          statusAnalise: item.status_analise,
-          createdAt: item.created_at,
-        }));
+        const mappedRev: Revisao[] = (revRes.data || []).map((item: any) => {
+          const dataPrevistaAnalise = item.data_prevista_analise || calcularDataPrevistaAnalise(item.data_entrega);
+
+          return {
+            id: item.id,
+            empreendimentoId: item.empreendimento_id,
+            obraId: item.obra_id,
+            disciplinaId: item.disciplina_id,
+            projetistaId: item.projetista_id,
+            numeroRevisao: item.numero_revisao,
+            dataPrevistaEntrega: item.data_prevista_entrega,
+            dataEntrega: item.data_entrega || undefined,
+            dataPrevistaAnalise: dataPrevistaAnalise || undefined,
+            dataAnalise: item.data_analise || undefined,
+            justificativa: item.justificativa,
+            justificativaRevisao: item.justificativa_revisao,
+            statusEntrega: calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega),
+            statusAnalise: calcularStatusAnalise(dataPrevistaAnalise, item.data_analise),
+            createdAt: item.created_at,
+          };
+        });
 
         setEmpreendimentos(mappedEmp);
         setObras(mappedObras);
