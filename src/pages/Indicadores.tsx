@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { Empreendimento, Obra, Disciplina, Projetista, Revisao } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { calcularStatusEntrega, calcularStatusAnalise, calcularDataPrevistaAnalise } from '@/lib/statusCalculator';
@@ -7,6 +7,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Building2, FileText, Layers, Users, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle, Target, BarChart3 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { IndicadoresPPR } from '@/components/indicadores/IndicadoresPPR';
+import { DateRange } from "react-day-picker";
+import { startOfDay, endOfDay } from "date-fns";
+import { MultiSelect, DatePickerWithRange, ActiveFilters } from "@/components/indicadores/Filters";
 
 const COLORS = {
   'no-prazo': '#22c55e',
@@ -22,6 +25,37 @@ export default function Indicadores() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [projetistas, setProjetistas] = useState<Projetista[]>([]);
+
+  // Estados dos Filtros
+  const [selectedEmpreendimentos, setSelectedEmpreendimentos] = useState<string[]>([]);
+  const [selectedProjetistas, setSelectedProjetistas] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const empreendimentoOptions = useMemo(() => empreendimentos.map(e => ({ label: e.nome, value: e.id })), [empreendimentos]);
+  const projetistaOptions = useMemo(() => projetistas.map(e => ({ label: e.nome, value: e.id })), [projetistas]);
+
+  const filteredRevisoes = useMemo(() => {
+    return revisoes.filter(rev => {
+      // Filtro Empreendimento
+      if (selectedEmpreendimentos.length > 0 && !selectedEmpreendimentos.includes(rev.empreendimentoId)) return false;
+
+      // Filtro Projetista
+      if (selectedProjetistas.length > 0 && !selectedProjetistas.includes(rev.projetistaId)) return false;
+
+      // Filtro Período
+      if (dateRange?.from) {
+        const dateStr = rev.dataPrevistaEntrega || rev.createdAt;
+        if (!dateStr) return false;
+        const date = new Date(dateStr);
+        const start = startOfDay(dateRange.from);
+        const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+
+        if (date < start || date > end) return false;
+      }
+
+      return true;
+    });
+  }, [revisoes, selectedEmpreendimentos, selectedProjetistas, dateRange]);
 
   useEffect(() => {
     const fetchAll = async (table: string) => {
@@ -143,41 +177,41 @@ export default function Indicadores() {
   // Qtd de revisões por Empreendimento, Obra e Disciplina
   const revisoesPorEmpreendimento = empreendimentos.map(emp => ({
     nome: emp.nome,
-    quantidade: revisoes.filter(r => r.empreendimentoId === emp.id).length,
+    quantidade: filteredRevisoes.filter(r => r.empreendimentoId === emp.id).length,
   })).filter(item => item.quantidade > 0);
 
   const revisoesPorObra = obras.map(obra => ({
     nome: obra.nome,
-    quantidade: revisoes.filter(r => r.obraId === obra.id).length,
+    quantidade: filteredRevisoes.filter(r => r.obraId === obra.id).length,
   })).filter(item => item.quantidade > 0);
 
   const revisoesPorDisciplina = disciplinas.map(disc => ({
     nome: disc.nome,
-    quantidade: revisoes.filter(r => r.disciplinaId === disc.id).length,
+    quantidade: filteredRevisoes.filter(r => r.disciplinaId === disc.id).length,
   })).filter(item => item.quantidade > 0);
 
   // Qtd de revisões por Projetista
   const revisoesPorProjetista = projetistas.map(proj => ({
     nome: proj.nome,
-    quantidade: revisoes.filter(r => r.projetistaId === proj.id).length,
+    quantidade: filteredRevisoes.filter(r => r.projetistaId === proj.id).length,
   })).filter(item => item.quantidade > 0);
 
   // Status de Entrega
   const statusEntrega = [
-    { name: 'No Prazo', value: revisoes.filter(r => r.statusEntrega === 'no-prazo').length },
-    { name: 'Atrasado', value: revisoes.filter(r => r.statusEntrega === 'atrasado').length },
-    { name: 'Pendente', value: revisoes.filter(r => r.statusEntrega === 'pendente').length },
+    { name: 'No Prazo', value: filteredRevisoes.filter(r => r.statusEntrega === 'no-prazo').length },
+    { name: 'Atrasado', value: filteredRevisoes.filter(r => r.statusEntrega === 'atrasado').length },
+    { name: 'Pendente', value: filteredRevisoes.filter(r => r.statusEntrega === 'pendente').length },
   ].filter(item => item.value > 0);
 
   // Status de Análise
   const statusAnalise = [
-    { name: 'No Prazo', value: revisoes.filter(r => r.statusAnalise === 'no-prazo').length },
-    { name: 'Atrasado', value: revisoes.filter(r => r.statusAnalise === 'atrasado').length },
-    { name: 'Pendente', value: revisoes.filter(r => r.statusAnalise === 'pendente').length },
+    { name: 'No Prazo', value: filteredRevisoes.filter(r => r.statusAnalise === 'no-prazo').length },
+    { name: 'Atrasado', value: filteredRevisoes.filter(r => r.statusAnalise === 'atrasado').length },
+    { name: 'Pendente', value: filteredRevisoes.filter(r => r.statusAnalise === 'pendente').length },
   ].filter(item => item.value > 0);
 
   // Revisões por Justificativa
-  const justificativasCount = revisoes.reduce((acc, rev) => {
+  const justificativasCount = filteredRevisoes.reduce((acc, rev) => {
     const just = rev.justificativa || 'Sem justificativa';
     acc[just] = (acc[just] || 0) + 1;
     return acc;
@@ -189,9 +223,9 @@ export default function Indicadores() {
     .slice(0, 10); // Top 10 justificativas
 
   // Cards de resumo
-  const totalRevisoes = revisoes.length;
-  const entregasNoPrazo = revisoes.filter(r => r.statusEntrega === 'no-prazo').length;
-  const analisesNoPrazo = revisoes.filter(r => r.statusAnalise === 'no-prazo').length;
+  const totalRevisoes = filteredRevisoes.length;
+  const entregasNoPrazo = filteredRevisoes.filter(r => r.statusEntrega === 'no-prazo').length;
+  const analisesNoPrazo = filteredRevisoes.filter(r => r.statusAnalise === 'no-prazo').length;
   const percentualEntregaNoPrazo = totalRevisoes > 0 ? ((entregasNoPrazo / totalRevisoes) * 100).toFixed(1) : '0';
   const percentualAnaliseNoPrazo = totalRevisoes > 0 ? ((analisesNoPrazo / totalRevisoes) * 100).toFixed(1) : '0';
 
@@ -205,16 +239,65 @@ export default function Indicadores() {
       </div>
 
       <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="geral" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Geral
-          </TabsTrigger>
-          <TabsTrigger value="ppr" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            PPR 2025
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="geral" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Geral
+              </TabsTrigger>
+              <TabsTrigger value="ppr" className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                PPR 2025
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <MultiSelect
+                title="Empreendimentos"
+                options={empreendimentoOptions}
+                selected={selectedEmpreendimentos}
+                onChange={setSelectedEmpreendimentos}
+              />
+              <MultiSelect
+                title="Projetistas"
+                options={projetistaOptions}
+                selected={selectedProjetistas}
+                onChange={setSelectedProjetistas}
+              />
+              <DatePickerWithRange
+                date={dateRange}
+                setDate={setDateRange}
+              />
+            </div>
+          </div>
+
+          <ActiveFilters
+            filters={{
+              empreendimentos: selectedEmpreendimentos,
+              projetistas: selectedProjetistas,
+              periodo: dateRange
+            }}
+            options={{
+              empreendimentos: empreendimentoOptions,
+              projetistas: projetistaOptions
+            }}
+            onRemove={(type, value) => {
+              if (type === 'empreendimentos' && value) {
+                setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
+              } else if (type === 'projetistas' && value) {
+                setSelectedProjetistas(prev => prev.filter(id => id !== value));
+              } else if (type === 'periodo') {
+                setDateRange(undefined);
+              }
+            }}
+            onClearAll={() => {
+              setSelectedEmpreendimentos([]);
+              setSelectedProjetistas([]);
+              setDateRange(undefined);
+            }}
+          />
+        </div>
 
         {/* Aba Geral - Indicadores existentes */}
         <TabsContent value="geral" className="space-y-6">
