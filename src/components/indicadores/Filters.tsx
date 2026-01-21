@@ -345,13 +345,15 @@ interface ActiveFiltersProps {
     filters: {
         empreendimentos: string[]
         projetistas: string[]
+        status: string[]
         periodo: DateRange | undefined
     }
     options: {
         empreendimentos: Option[]
         projetistas: Option[]
+        status: Option[]
     }
-    onRemove: (type: 'empreendimentos' | 'projetistas' | 'periodo', value?: string) => void
+    onRemove: (type: 'empreendimentos' | 'projetistas' | 'status' | 'periodo', value?: string) => void
     onClearAll: () => void
 }
 
@@ -359,6 +361,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
     const hasFilters =
         filters.empreendimentos.length > 0 ||
         filters.projetistas.length > 0 ||
+        filters.status.length > 0 ||
         filters.periodo?.from !== undefined
 
     if (!hasFilters) return null
@@ -390,6 +393,22 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
                         <span className="text-muted-foreground">Proj:</span> {label}
                         <button
                             onClick={() => onRemove('projetistas', id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                        >
+                            <X className="h-3 w-3" />
+                            <span className="sr-only">Remover</span>
+                        </button>
+                    </Badge>
+                )
+            })}
+
+            {filters.status.map((id) => {
+                const label = options.status.find(o => o.value === id)?.label || id
+                return (
+                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 bg-white border shadow-sm">
+                        <span className="text-muted-foreground">Status:</span> {label}
+                        <button
+                            onClick={() => onRemove('status', id)}
                             className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
                         >
                             <X className="h-3 w-3" />

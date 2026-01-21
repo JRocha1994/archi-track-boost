@@ -29,10 +29,17 @@ export default function Indicadores() {
   // Estados dos Filtros
   const [selectedEmpreendimentos, setSelectedEmpreendimentos] = useState<string[]>([]);
   const [selectedProjetistas, setSelectedProjetistas] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const empreendimentoOptions = useMemo(() => empreendimentos.map(e => ({ label: e.nome, value: e.id })), [empreendimentos]);
   const projetistaOptions = useMemo(() => projetistas.map(e => ({ label: e.nome, value: e.id })), [projetistas]);
+
+  const statusOptions = [
+    { label: 'No Prazo', value: 'no-prazo' },
+    { label: 'Pendente', value: 'pendente' },
+    { label: 'Atrasado', value: 'atrasado' },
+  ];
 
   const filteredRevisoes = useMemo(() => {
     return revisoes.filter(rev => {
@@ -41,6 +48,9 @@ export default function Indicadores() {
 
       // Filtro Projetista
       if (selectedProjetistas.length > 0 && !selectedProjetistas.includes(rev.projetistaId)) return false;
+
+      // Filtro Status
+      if (selectedStatus.length > 0 && !selectedStatus.includes(rev.statusEntrega)) return false;
 
       // Filtro Período
       if (dateRange?.from) {
@@ -55,7 +65,7 @@ export default function Indicadores() {
 
       return true;
     });
-  }, [revisoes, selectedEmpreendimentos, selectedProjetistas, dateRange]);
+  }, [revisoes, selectedEmpreendimentos, selectedProjetistas, selectedStatus, dateRange]);
 
   useEffect(() => {
     const fetchAll = async (table: string) => {
@@ -265,6 +275,12 @@ export default function Indicadores() {
                 selected={selectedProjetistas}
                 onChange={setSelectedProjetistas}
               />
+              <MultiSelect
+                title="Status de Entrega"
+                options={statusOptions}
+                selected={selectedStatus}
+                onChange={setSelectedStatus}
+              />
               <DatePickerWithRange
                 date={dateRange}
                 setDate={setDateRange}
@@ -276,17 +292,21 @@ export default function Indicadores() {
             filters={{
               empreendimentos: selectedEmpreendimentos,
               projetistas: selectedProjetistas,
+              status: selectedStatus,
               periodo: dateRange
             }}
             options={{
               empreendimentos: empreendimentoOptions,
-              projetistas: projetistaOptions
+              projetistas: projetistaOptions,
+              status: statusOptions
             }}
             onRemove={(type, value) => {
               if (type === 'empreendimentos' && value) {
                 setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
               } else if (type === 'projetistas' && value) {
                 setSelectedProjetistas(prev => prev.filter(id => id !== value));
+              } else if (type === 'status' && value) {
+                setSelectedStatus(prev => prev.filter(id => id !== value));
               } else if (type === 'periodo') {
                 setDateRange(undefined);
               }
@@ -294,6 +314,7 @@ export default function Indicadores() {
             onClearAll={() => {
               setSelectedEmpreendimentos([]);
               setSelectedProjetistas([]);
+              setSelectedStatus([]);
               setDateRange(undefined);
             }}
           />
