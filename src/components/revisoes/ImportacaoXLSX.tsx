@@ -41,6 +41,7 @@ export function ImportacaoXLSX({
         'Dt. de Entrega': '2025-01-14',
         'Data de Análise': '2025-01-20',
         Justificativa: 'Ajustes solicitados pelo cliente',
+        'Justificativa da Revisão': 'Motivo detalhado da alteração',
       },
     ];
 
@@ -226,6 +227,7 @@ export function ImportacaoXLSX({
           dataPrevistaAnalise,
           dataAnalise: dtAnalise || undefined,
           justificativa: row.Justificativa || '',
+          justificativaRevisao: row['Justificativa da Revisão'] || '',
           statusEntrega,
           statusAnalise,
           createdAt: new Date().toISOString(),
@@ -269,6 +271,7 @@ export function ImportacaoXLSX({
           data_prevista_analise: r.dataPrevistaAnalise || null,
           data_analise: r.dataAnalise || null,
           justificativa: r.justificativa,
+          justificativa_revisao: r.justificativaRevisao || null,
           status_entrega: r.statusEntrega,
           status_analise: r.statusAnalise,
           user_id: session.user.id,
@@ -277,7 +280,7 @@ export function ImportacaoXLSX({
         // Inserir no Supabase e retornar dados inseridos
         const { data, error: insertError } = await supabase
           .from('revisoes')
-          .insert(dbInserts)
+          .insert(dbInserts as any)
           .select();
 
         if (insertError) {
@@ -298,6 +301,7 @@ export function ImportacaoXLSX({
           dataPrevistaAnalise: item.data_prevista_analise,
           dataAnalise: item.data_analise,
           justificativa: item.justificativa,
+          justificativaRevisao: item.justificativa_revisao,
           statusEntrega: item.status_entrega,
           statusAnalise: item.status_analise,
           createdAt: item.created_at,

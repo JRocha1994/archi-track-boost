@@ -40,6 +40,7 @@ export interface Revisao {
   dataPrevistaAnalise?: string;
   dataAnalise?: string;
   justificativa: string;
+  justificativaRevisao?: string;
   statusEntrega: StatusEntrega;
   statusAnalise: StatusAnalise;
   createdAt: string;

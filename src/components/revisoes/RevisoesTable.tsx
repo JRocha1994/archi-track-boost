@@ -522,6 +522,7 @@ export function RevisoesTable({
       dataPrevistaAnalise: '',
       dataAnalise: '',
       justificativa: '',
+      justificativaRevisao: '',
     });
   };
 
@@ -570,10 +571,11 @@ export function RevisoesTable({
           data_prevista_analise: dataPrevistaAnalise || null,
           data_analise: newRow.dataAnalise || null,
           justificativa: newRow.justificativa!,
+          justificativa_revisao: newRow.justificativaRevisao || null,
           status_entrega: statusEntrega,
           status_analise: statusAnalise,
           user_id: user.id,
-        })
+        } as any)
         .select('*')
         .single();
 
@@ -591,6 +593,7 @@ export function RevisoesTable({
         dataPrevistaAnalise: data.data_prevista_analise || undefined,
         dataAnalise: data.data_analise || undefined,
         justificativa: data.justificativa,
+        justificativaRevisao: (data as any).justificativa_revisao,
         statusEntrega: data.status_entrega,
         statusAnalise: data.status_analise,
         createdAt: data.created_at,
@@ -699,10 +702,10 @@ export function RevisoesTable({
           data_prevista_analise: dataPrevistaAnalise || null,
           data_analise: editedRevisao.dataAnalise || null,
           justificativa: editedRevisao.justificativa!,
-          status_entrega: statusEntrega,
+          justificativa_revisao: editedRevisao.justificativaRevisao || null,
           status_analise: statusAnalise,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', id)
         .select('*')
         .single();
@@ -721,6 +724,7 @@ export function RevisoesTable({
         dataPrevistaAnalise: data.data_prevista_analise || undefined,
         dataAnalise: data.data_analise || undefined,
         justificativa: data.justificativa,
+        justificativaRevisao: (data as any).justificativa_revisao,
         statusEntrega: data.status_entrega,
         statusAnalise: data.status_analise,
         createdAt: data.created_at,
@@ -783,6 +787,7 @@ export function RevisoesTable({
       'Dt. de Entrega': r.dataEntrega || '',
       'Data de Análise': r.dataAnalise || '',
       Justificativa: r.justificativa,
+      'Justificativa da Revisão': r.justificativaRevisao || '',
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1102,6 +1107,7 @@ export function RevisoesTable({
                 </div>
               </TableHead>
               <TableHead className="min-w-[200px]">Justificativa</TableHead>
+              <TableHead className="min-w-[200px]">Justificativa da Revisão</TableHead>
               <TableHead className="w-20">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -1223,6 +1229,13 @@ export function RevisoesTable({
                     className="h-8"
                     value={newRow.justificativa || ''}
                     onChange={(e) => setNewRow({ ...newRow, justificativa: e.target.value })}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    className="h-8"
+                    value={newRow.justificativaRevisao || ''}
+                    onChange={(e) => setNewRow({ ...newRow, justificativaRevisao: e.target.value })}
                   />
                 </TableCell>
                 <TableCell>
@@ -1456,6 +1469,34 @@ export function RevisoesTable({
                       />
                     ) : (
                       <span className="max-w-xs truncate block">{revisao.justificativa}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Input
+                        className="h-8"
+                        value={editData.justificativaRevisao || ''}
+                        onChange={(e) => setEditingRows({
+                          ...editingRows,
+                          [revisao.id]: { ...editData, justificativaRevisao: e.target.value }
+                        })}
+                      />
+                    ) : (
+                      <span className="max-w-xs truncate block">{revisao.justificativaRevisao}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Input
+                        className="h-8"
+                        value={editData.justificativaRevisao || ''}
+                        onChange={(e) => setEditingRows({
+                          ...editingRows,
+                          [revisao.id]: { ...editData, justificativaRevisao: e.target.value }
+                        })}
+                      />
+                    ) : (
+                      <span className="max-w-xs truncate block">{revisao.justificativaRevisao}</span>
                     )}
                   </TableCell>
                   <TableCell>
