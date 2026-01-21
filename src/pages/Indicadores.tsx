@@ -421,10 +421,7 @@ export default function Indicadores() {
 
         {/* Aba PPR - Indicador de Metas */}
         <TabsContent value="ppr">
-          <IndicadoresPPR
-            revisoes={revisoes}
-            empreendimentos={empreendimentos}
-          />
+          <IndicadoresPPR />
         </TabsContent>
       </Tabs>
     </div>

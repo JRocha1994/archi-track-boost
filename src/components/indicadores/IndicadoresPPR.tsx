@@ -1,14 +1,10 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Empreendimento, Revisao } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { Target, TrendingUp, Award } from 'lucide-react';
-
-interface IndicadoresPPRProps {
-    revisoes: Revisao[];
-    empreendimentos: Empreendimento[];
-}
+import { Target, TrendingUp, Award, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const META_PPR = 95; // Meta de 95%
 const TETO_PPR = 100; // Teto de 100%
@@ -64,66 +60,110 @@ function GaugeChart({ value, meta, teto }: { value: number; meta: number; teto: 
     );
 }
 
-export function IndicadoresPPR({ revisoes, empreendimentos }: IndicadoresPPRProps) {
-    // Debug: verificar se o componente está sendo renderizado
-    console.log('=== IndicadoresPPR renderizado ===');
-    console.log('Props recebidas - revisoes:', revisoes?.length || 0, 'empreendimentos:', empreendimentos?.length || 0);
+interface DadosPPR {
+    totalPrevisto: number;
+    totalEntregue: number;
+    percentualGeral: number;
+    cumprimentoMeta: number;
+    porEmpreendimento: {
+        nome: string;
+        totalProjetos: number;
+        projetosEntregues: number;
+        percentualEntregue: number;
+    }[];
+}
 
-    // Filtrar revisões do ano de 2025
-    const dadosPPR = useMemo(() => {
-        const dataInicio = '2025-01-01';
-        const dataFim = '2025-12-31';
+export function IndicadoresPPR() {
+    const [loading, setLoading] = useState(true);
+    const [dadosPPR, setDadosPPR] = useState<DadosPPR>({
+        totalPrevisto: 0,
+        totalEntregue: 0,
+        percentualGeral: 0,
+        cumprimentoMeta: 0,
+        porEmpreendimento: [],
+    });
 
-        console.log('Total de revisões recebidas:', revisoes.length);
-        console.log('Total de empreendimentos:', empreendimentos.length);
+    useEffect(() => {
+        const carregarDados = async () => {
+            try {
+                setLoading(true);
 
-        // Revisões com Data Prevista Entrega no ano de 2025
-        const revisoesPrevistoEm2025 = revisoes.filter(r => {
-            if (!r.dataPrevistaEntrega) return false;
-            return r.dataPrevistaEntrega >= dataInicio && r.dataPrevistaEntrega <= dataFim;
-        });
+                // Carregar empreendimentos
+                const { data: empreendimentosData, error: empError } = await supabase
+                    .from('empreendimentos')
+                    .select('id, nome');
 
-        // Revisões com Data de Entrega no ano de 2025
-        const revisoesEntreguesEm2025 = revisoes.filter(r => {
-            if (!r.dataEntrega) return false;
-            return r.dataEntrega >= dataInicio && r.dataEntrega <= dataFim;
-        });
+                if (empError) throw empError;
 
-        console.log('Revisões com previsão em 2025:', revisoesPrevistoEm2025.length);
-        console.log('Revisões com entrega em 2025:', revisoesEntreguesEm2025.length);
+                // Carregar revisões com data prevista em 2025
+                const { data: revisoesPrevistas, error: prevError } = await supabase
+                    .from('revisoes')
+                    .select('id, empreendimento_id, data_prevista_entrega, data_entrega')
+                    .gte('data_prevista_entrega', '2025-01-01')
+                    .lte('data_prevista_entrega', '2025-12-31');
 
-        const totalPrevisto = revisoesPrevistoEm2025.length;
-        const totalEntregue = revisoesEntreguesEm2025.length;
-        const percentualGeral = totalPrevisto > 0 ? (totalEntregue / totalPrevisto) * 100 : 0;
-        const cumprimentoMeta = (percentualGeral / META_PPR) * 100;
+                if (prevError) throw prevError;
 
-        // Dados por Empreendimento
-        const porEmpreendimento = empreendimentos.map(emp => {
-            // Revisões do empreendimento com previsão em 2025
-            const previstosEmp = revisoesPrevistoEm2025.filter(r => r.empreendimentoId === emp.id).length;
-            // Revisões do empreendimento com entrega em 2025
-            const entreguesEmp = revisoesEntreguesEm2025.filter(r => r.empreendimentoId === emp.id).length;
+                // Carregar revisões com data de entrega em 2025
+                const { data: revisoesEntregues, error: entregaError } = await supabase
+                    .from('revisoes')
+                    .select('id, empreendimento_id, data_entrega')
+                    .gte('data_entrega', '2025-01-01')
+                    .lte('data_entrega', '2025-12-31');
 
-            const percentual = previstosEmp > 0 ? (entreguesEmp / previstosEmp) * 100 : 0;
+                if (entregaError) throw entregaError;
 
-            return {
-                nome: emp.nome,
-                totalProjetos: previstosEmp,
-                projetosEntregues: entreguesEmp,
-                percentualEntregue: percentual,
-            };
-        }).filter(item => item.totalProjetos > 0); // Apenas empreendimentos com revisões previstas em 2025
+                console.log('Empreendimentos:', empreendimentosData?.length);
+                console.log('Revisões com previsão em 2025:', revisoesPrevistas?.length);
+                console.log('Revisões com entrega em 2025:', revisoesEntregues?.length);
 
-        console.log('Empreendimentos com dados:', porEmpreendimento);
+                const totalPrevisto = revisoesPrevistas?.length || 0;
+                const totalEntregue = revisoesEntregues?.length || 0;
+                const percentualGeral = totalPrevisto > 0 ? (totalEntregue / totalPrevisto) * 100 : 0;
+                const cumprimentoMeta = (percentualGeral / META_PPR) * 100;
 
-        return {
-            totalPrevisto,
-            totalEntregue,
-            percentualGeral,
-            cumprimentoMeta,
-            porEmpreendimento,
+                // Calcular por empreendimento
+                const porEmpreendimento = (empreendimentosData || []).map(emp => {
+                    const previstosEmp = (revisoesPrevistas || []).filter(r => r.empreendimento_id === emp.id).length;
+                    const entreguesEmp = (revisoesEntregues || []).filter(r => r.empreendimento_id === emp.id).length;
+                    const percentual = previstosEmp > 0 ? (entreguesEmp / previstosEmp) * 100 : 0;
+
+                    return {
+                        nome: emp.nome,
+                        totalProjetos: previstosEmp,
+                        projetosEntregues: entreguesEmp,
+                        percentualEntregue: percentual,
+                    };
+                }).filter(item => item.totalProjetos > 0);
+
+                console.log('Dados por empreendimento:', porEmpreendimento);
+
+                setDadosPPR({
+                    totalPrevisto,
+                    totalEntregue,
+                    percentualGeral,
+                    cumprimentoMeta,
+                    porEmpreendimento,
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar dados PPR:', error);
+            } finally {
+                setLoading(false);
+            }
         };
-    }, [revisoes, empreendimentos]);
+
+        carregarDados();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Carregando dados do PPR...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
