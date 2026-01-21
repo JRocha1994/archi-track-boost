@@ -24,6 +24,32 @@ export default function Indicadores() {
   const [projetistas, setProjetistas] = useState<Projetista[]>([]);
 
   useEffect(() => {
+    const fetchAll = async (table: string) => {
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from(table)
+          .select('*')
+          .range(page * pageSize, (page + 1) * pageSize - 1)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) hasMore = false;
+          else page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      return { data: allData, error: null };
+    };
+
     const loadAll = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -39,11 +65,11 @@ export default function Indicadores() {
         }
 
         const [empRes, obrasRes, discRes, projRes, revRes] = await Promise.all([
-          supabase.from('empreendimentos').select('*').order('created_at', { ascending: true }),
-          supabase.from('obras').select('*').order('created_at', { ascending: true }),
-          supabase.from('disciplinas').select('*').order('created_at', { ascending: true }),
-          supabase.from('projetistas').select('*').order('created_at', { ascending: true }),
-          supabase.from('revisoes').select('*').order('created_at', { ascending: true }).range(0, 9999),
+          fetchAll('empreendimentos'),
+          fetchAll('obras'),
+          fetchAll('disciplinas'),
+          fetchAll('projetistas'),
+          fetchAll('revisoes'),
         ]);
 
         if (empRes.error) throw empRes.error;
