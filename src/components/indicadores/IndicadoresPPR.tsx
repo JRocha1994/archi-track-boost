@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
-import type { Empreendimento, Revisao } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import type { Empreendimento } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Target, TrendingUp, Award, Loader2 } from 'lucide-react';
@@ -13,7 +13,6 @@ const TETO_PPR = 100; // Teto de 100%
 const GAUGE_COLORS = {
     achieved: '#1e3a5f', // Azul escuro para valor atingido
     remaining: '#e5e7eb', // Cinza claro para restante
-    meta: '#22c55e', // Verde para indicar meta
 };
 
 // Componente de Gauge Chart customizado
@@ -73,6 +72,20 @@ interface DadosPPR {
     }[];
 }
 
+// Função auxiliar para extrair apenas YYYY-MM-DD de uma data
+const extrairData = (data: string | null | undefined): string | null => {
+    if (!data) return null;
+    // Pega apenas os primeiros 10 caracteres (YYYY-MM-DD)
+    return data.substring(0, 10);
+};
+
+// Verificar se uma data está entre 01/01/2025 e 31/12/2025
+const estaEm2025 = (data: string | null | undefined): boolean => {
+    const dataFormatada = extrairData(data);
+    if (!dataFormatada) return false;
+    return dataFormatada >= '2025-01-01' && dataFormatada <= '2025-12-31';
+};
+
 export function IndicadoresPPR() {
     const [loading, setLoading] = useState(true);
     const [dadosPPR, setDadosPPR] = useState<DadosPPR>({
@@ -95,41 +108,44 @@ export function IndicadoresPPR() {
 
                 if (empError) throw empError;
 
-                // Carregar revisões com data prevista em 2025
-                const { data: revisoesPrevistas, error: prevError } = await supabase
+                // Carregar TODAS as revisões (para garantir que pegamos tudo)
+                const { data: todasRevisoes, error: revError } = await supabase
                     .from('revisoes')
-                    .select('id, empreendimento_id, data_prevista_entrega, data_entrega')
-                    .gte('data_prevista_entrega', '2025-01-01')
-                    .lte('data_prevista_entrega', '2025-12-31');
+                    .select('id, empreendimento_id, data_prevista_entrega, data_entrega');
 
-                if (prevError) throw prevError;
+                if (revError) throw revError;
+
+                console.log('=== DEBUG PPR ===');
+                console.log('Total de empreendimentos:', empreendimentosData?.length);
+                console.log('Total de revisões:', todasRevisoes?.length);
+
+                // Exemplo de formato de data vindo do banco
+                if (todasRevisoes && todasRevisoes.length > 0) {
+                    console.log('Exemplo de revisão:', todasRevisoes[0]);
+                }
+
+                // Filtrar revisões com Data Prevista Entrega em 2025
+                const revisoesPrevistas = (todasRevisoes || []).filter(r => estaEm2025(r.data_prevista_entrega));
 
                 // Projetos Entregues = revisões com Data Prevista em 2025 E Data de Entrega em 2025
-                const revisoesEntregues = (revisoesPrevistas || []).filter(r => {
-                    if (!r.data_entrega) return false;
-                    return r.data_entrega >= '2025-01-01' && r.data_entrega <= '2025-12-31';
-                });
+                const revisoesEntregues = revisoesPrevistas.filter(r => estaEm2025(r.data_entrega));
 
-                console.log('Empreendimentos:', empreendimentosData?.length);
-                console.log('Revisões com previsão em 2025:', revisoesPrevistas?.length);
-                console.log('Revisões com previsão E entrega em 2025:', revisoesEntregues?.length);
+                console.log('Revisões com previsão em 2025:', revisoesPrevistas.length);
+                console.log('Revisões com previsão E entrega em 2025:', revisoesEntregues.length);
 
-                const totalPrevisto = revisoesPrevistas?.length || 0;
-                const totalEntregue = revisoesEntregues?.length || 0;
+                const totalPrevisto = revisoesPrevistas.length;
+                const totalEntregue = revisoesEntregues.length;
                 const percentualGeral = totalPrevisto > 0 ? (totalEntregue / totalPrevisto) * 100 : 0;
                 const cumprimentoMeta = (percentualGeral / META_PPR) * 100;
 
                 // Calcular por empreendimento
                 const porEmpreendimento = (empreendimentosData || []).map(emp => {
                     // Qtd de Projetos = revisões com Data Prevista em 2025
-                    const previstosEmp = (revisoesPrevistas || []).filter(r => r.empreendimento_id === emp.id);
+                    const previstosEmp = revisoesPrevistas.filter(r => r.empreendimento_id === emp.id);
                     const totalPrevistosEmp = previstosEmp.length;
 
                     // Qtd de Projetos Entregues = revisões com Data Prevista em 2025 E Data de Entrega em 2025
-                    const entreguesEmp = previstosEmp.filter(r => {
-                        if (!r.data_entrega) return false;
-                        return r.data_entrega >= '2025-01-01' && r.data_entrega <= '2025-12-31';
-                    }).length;
+                    const entreguesEmp = previstosEmp.filter(r => estaEm2025(r.data_entrega)).length;
 
                     const percentual = totalPrevistosEmp > 0 ? (entreguesEmp / totalPrevistosEmp) * 100 : 0;
 
