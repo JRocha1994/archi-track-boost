@@ -228,9 +228,9 @@ export function IndicadoresPPR() {
             <div className="text-center space-y-2">
                 <div className="flex items-center justify-center gap-3">
                     <Target className="h-8 w-8 text-amber-500" />
-                    <h2 className="text-3xl font-bold text-[#1e3a5f]">META DA ORGANIZAÇÃO</h2>
+                    <h2 className="text-3xl font-bold text-muted-foreground">META DA ORGANIZAÇÃO</h2>
                 </div>
-                <h3 className="text-2xl font-bold text-[#1e3a5f]">PPR 2025</h3>
+                <h3 className="text-2xl font-bold text-muted-foreground">PPR 2025</h3>
                 <p className="text-muted-foreground">
                     Cumprir {META_PPR}% dos prazos, conforme cronograma para a execução de obra (físico)
                 </p>
