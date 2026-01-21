@@ -37,9 +37,9 @@ export function ImportacaoXLSX({
         Disciplina: 'Nome da Disciplina',
         Projetista: 'Nome do Projetista',
         'Número da Revisão': 1,
-        'Dt. Prevista Entrega': '2025-01-15',
-        'Dt. de Entrega': '2025-01-14',
-        'Data de Análise': '2025-01-20',
+        'Dt. Prevista Entrega': '15/01/2025',
+        'Dt. de Entrega': '14/01/2025',
+        'Data de Análise': '20/01/2025',
         Justificativa: 'Ajustes solicitados pelo cliente',
         'Justificativa da Revisão': 'Motivo detalhado da alteração',
       },
@@ -378,7 +378,7 @@ export function ImportacaoXLSX({
             <li>Baixe o template Excel clicando no botão acima</li>
             <li>Preencha os dados seguindo o formato do exemplo</li>
             <li>Use os nomes exatos dos empreendimentos, obras, disciplinas e projetistas cadastrados</li>
-            <li>As datas devem estar no formato AAAA-MM-DD (ex: 2025-01-15)</li>
+            <li>As datas devem estar no formato DD/MM/AAAA (ex: 15/01/2025)</li>
             <li>Salve e faça o upload do arquivo preenchido</li>
           </ol>
         </div>
