@@ -140,22 +140,42 @@ export function IndicadoresPPR() {
                     console.log('Exemplo de revisão:', todasRevisoes[0]);
                 }
 
-                // Filtrar revisões com Data Prevista Entrega em 2025
-                const revisoesPrevistas = (todasRevisoes || []).filter(r => estaEm2025(r.data_prevista_entrega));
+                // Filtrar apenas empreendimentos permitidos
+                const EMPREENDIMENTOS_PERMITIDOS = [
+                    'HAMOA SORRISO',
+                    'HAMOA JATAI',
+                    'HAMOA UBERLÂNDIA',
+                    'AQUARELA DA MATA'
+                ];
 
-                // Projetos Entregues = revisões com Data Prevista em 2025 E Data de Entrega em 2025
+                const empreendimentosFiltrados = (empreendimentosData || []).filter(emp =>
+                    EMPREENDIMENTOS_PERMITIDOS.includes(emp.nome.toUpperCase())
+                );
+
+                console.log('Empreendimentos filtrados:', empreendimentosFiltrados.map(e => e.nome));
+
+                // IDs dos empreendimentos permitidos para filtrar as revisões
+                const idsPermitidos = new Set(empreendimentosFiltrados.map(e => e.id));
+
+                // Filtrar revisões apenas desses empreendimentos E com Data Prevista Entrega em 2025
+                const revisoesPrevistas = (todasRevisoes || []).filter(r =>
+                    idsPermitidos.has(r.empreendimento_id) &&
+                    estaEm2025(r.data_prevista_entrega)
+                );
+
+                // Projetos Entregues = revisões filtradas com Data Prevista em 2025 E Data de Entrega em 2025
                 const revisoesEntregues = revisoesPrevistas.filter(r => estaEm2025(r.data_entrega));
 
-                console.log('Revisões com previsão em 2025:', revisoesPrevistas.length);
-                console.log('Revisões com previsão E entrega em 2025:', revisoesEntregues.length);
+                console.log('Revisões com previsão em 2025 (Filtradas):', revisoesPrevistas.length);
+                console.log('Revisões com previsão E entrega em 2025 (Filtradas):', revisoesEntregues.length);
 
                 const totalPrevisto = revisoesPrevistas.length;
                 const totalEntregue = revisoesEntregues.length;
                 const percentualGeral = totalPrevisto > 0 ? (totalEntregue / totalPrevisto) * 100 : 0;
                 const cumprimentoMeta = (percentualGeral / META_PPR) * 100;
 
-                // Calcular por empreendimento
-                const porEmpreendimento = (empreendimentosData || []).map(emp => {
+                // Calcular por empreendimento (usando apenas os filtrados)
+                const porEmpreendimento = empreendimentosFiltrados.map(emp => {
                     // Qtd de Projetos = revisões com Data Prevista em 2025
                     const previstosEmp = revisoesPrevistas.filter(r => r.empreendimento_id === emp.id);
                     const totalPrevistosEmp = previstosEmp.length;
