@@ -218,6 +218,8 @@ export function RevisoesTable({
     disciplina: [...new Set(revisoes.map(r => getNome(r.disciplinaId, disciplinas)))].filter(Boolean),
     projetista: [...new Set(revisoes.map(r => getNome(r.projetistaId, projetistas)))].filter(Boolean),
     numeroRevisao: [...new Set(revisoes.map(r => String(r.numeroRevisao)))].sort((a, b) => Number(a) - Number(b)),
+    statusEntrega: [...new Set(revisoes.map(r => r.statusEntrega))].filter(Boolean).sort(),
+    statusAnalise: [...new Set(revisoes.map(r => r.statusAnalise))].filter(Boolean).sort(),
   }), [revisoes, empreendimentos, obras, disciplinas, projetistas]);
 
   // Aplicar filtros
@@ -339,6 +341,14 @@ export function RevisoesTable({
         case 'dtAnalise':
           valA = a.dataAnalise || '';
           valB = b.dataAnalise || '';
+          break;
+        case 'statusEntrega':
+          valA = a.statusEntrega || '';
+          valB = b.statusEntrega || '';
+          break;
+        case 'statusAnalise':
+          valA = a.statusAnalise || '';
+          valB = b.statusAnalise || '';
           break;
         default:
           return 0;
@@ -1049,8 +1059,48 @@ export function RevisoesTable({
                   />
                 </div>
               </TableHead>
-              <TableHead className="min-w-[150px]">Status Entrega</TableHead>
-              <TableHead className="min-w-[150px]">Status Análise</TableHead>
+              <TableHead className="min-w-[150px]">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('statusEntrega')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Status Entrega
+                    {sortConfig?.key === 'statusEntrega' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'statusEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
+                  <ColumnFilter
+                    column="Status Entrega"
+                    values={uniqueValues.statusEntrega}
+                    selectedValues={filters.statusEntrega}
+                    onFilterChange={(values) => setFilters({ ...filters, statusEntrega: values as any })}
+                  />
+                </div>
+              </TableHead>
+              <TableHead className="min-w-[150px]">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSort('statusAnalise')}
+                    className="h-auto p-0 hover:bg-transparent font-medium"
+                  >
+                    Status Análise
+                    {sortConfig?.key === 'statusAnalise' && (
+                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
+                    )}
+                    {sortConfig?.key !== 'statusAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                  </Button>
+                  <ColumnFilter
+                    column="Status Análise"
+                    values={uniqueValues.statusAnalise}
+                    selectedValues={filters.statusAnalise}
+                    onFilterChange={(values) => setFilters({ ...filters, statusAnalise: values as any })}
+                  />
+                </div>
+              </TableHead>
               <TableHead className="min-w-[200px]">Justificativa</TableHead>
               <TableHead className="w-20">Ações</TableHead>
             </TableRow>
