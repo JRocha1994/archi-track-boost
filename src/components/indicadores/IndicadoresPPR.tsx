@@ -46,7 +46,7 @@ function GaugeChart({ value, meta, teto }: { value: number; meta: number; teto: 
 
             {/* Valor central */}
             <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ top: '30%' }}>
-                <span className="text-4xl font-bold text-[#1e3a5f]">{value.toFixed(2)}%</span>
+                <span className="text-4xl font-bold">{value.toFixed(2)}%</span>
             </div>
 
             {/* Marcadores de escala */}
@@ -312,7 +312,7 @@ export function IndicadoresPPR() {
                             <CardTitle className="text-sm text-center">Projetos Executivos</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center py-6">
-                            <div className="text-5xl font-bold text-[#1e3a5f]">
+                            <div className="text-5xl font-bold">
                                 {dadosPPR.percentualGeral.toFixed(2)}%
                             </div>
                             <p className="text-sm text-muted-foreground mt-2">Cumprimento de Prazo Atingido</p>
@@ -325,7 +325,7 @@ export function IndicadoresPPR() {
                             <CardTitle className="text-sm text-center">Projetos Executivos</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center py-6">
-                            <div className="text-5xl font-bold text-[#1e3a5f]">
+                            <div className="text-5xl font-bold">
                                 {dadosPPR.cumprimentoMeta.toFixed(2)}%
                             </div>
                             <p className="text-sm text-muted-foreground mt-2">Cumprimento de Prazo em Relação a Meta</p>
