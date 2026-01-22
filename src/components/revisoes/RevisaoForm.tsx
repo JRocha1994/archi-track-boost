@@ -300,7 +300,7 @@ export function RevisaoForm({
             type="date"
             value={formData.dataPrevistaAnalise}
             disabled
-            title="Calculado automaticamente como Data de Entrega + 5 dias"
+            title="Calculado automaticamente baseando-se no prazo da disciplina"
           />
         </div>
 
