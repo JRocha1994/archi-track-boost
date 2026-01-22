@@ -1521,20 +1521,6 @@ export function RevisoesTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    {isEditing ? (
-                      <Input
-                        className="h-8"
-                        value={editData.justificativaRevisao || ''}
-                        onChange={(e) => setEditingRows({
-                          ...editingRows,
-                          [revisao.id]: { ...editData, justificativaRevisao: e.target.value }
-                        })}
-                      />
-                    ) : (
-                      <span className="max-w-xs truncate block">{revisao.justificativaRevisao}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
                     <div className="flex gap-1">
                       {isEditing ? (
                         <>
