@@ -113,7 +113,7 @@ export function RevisaoForm({
           status_analise: statusAnalise,
           prazo_medio_analise: prazoMedio,
           user_id: user.id,
-        })
+        } as any)
         .select('*')
         .single();
 
@@ -231,6 +231,11 @@ export function RevisaoForm({
               ))}
             </SelectContent>
           </Select>
+          {formData.disciplinaId && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Prazo de análise: {disciplinas.find(d => d.id === formData.disciplinaId)?.prazoMedioAnalise || 5} dias
+            </p>
+          )}
         </div>
 
         <div>
