@@ -80,6 +80,9 @@ export default function Disciplinas() {
       }
 
       if (editingItem) {
+        const prazoAnterior = editingItem.prazoMedioAnalise;
+        const prazoMudou = prazoAnterior !== prazo;
+
         const { data, error } = await supabase
           .from('disciplinas')
           .update({
@@ -93,6 +96,25 @@ export default function Disciplinas() {
 
         if (error) throw error;
 
+        // Se o prazo mudou, atualiza as revisões de 2025 em diante
+        if (prazoMudou) {
+          const { data: revisoesAtualizadas, error: updateRevisoesError } = await supabase
+            .from('revisoes')
+            .update({
+              prazo_medio_analise: prazo,
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('disciplina_id', editingItem.id)
+            .gte('data_entrega', '2025-01-01');
+
+          if (updateRevisoesError) {
+            console.error('Erro ao atualizar revisões:', updateRevisoesError);
+            // Não bloqueia, apenas loga o erro
+          } else {
+            console.log(`Prazo atualizado para as revisões da disciplina "${nome}" com data de entrega >= 2025`);
+          }
+        }
+
         const updated: Disciplina = {
           id: data.id,
           nome: data.nome,
@@ -103,7 +125,11 @@ export default function Disciplinas() {
         setDisciplinas(disciplinas.map(item =>
           item.id === updated.id ? updated : item
         ));
-        toast({ title: 'Disciplina atualizada com sucesso' });
+
+        const mensagem = prazoMudou
+          ? `Disciplina atualizada! Revisões de 2025+ foram atualizadas para ${prazo} dias.`
+          : 'Disciplina atualizada com sucesso';
+        toast({ title: mensagem });
       } else {
         const { data, error } = await supabase
           .from('disciplinas')

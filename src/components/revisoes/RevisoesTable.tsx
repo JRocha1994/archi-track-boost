@@ -1447,18 +1447,23 @@ export function RevisoesTable({
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      // Calcula dinamicamente baseado no prazo atual da disciplina
+                      // Usa o prazo salvo na revisão (snapshot), fallback para disciplina (registros antigos)
                       const disc = disciplinas.find(d => d.id === revisao.disciplinaId);
-                      const prazo = disc?.prazoMedioAnalise || 5;
+                      const prazoSnapshot = revisao.prazoMedioAnalise; // Valor salvo no momento da criação
+                      const prazoFallback = disc?.prazoMedioAnalise || 5; // Fallback para registros antigos
+                      const prazo = prazoSnapshot ?? prazoFallback;
                       const dataEntrega = isEditing ? editData.dataEntrega : revisao.dataEntrega;
                       const calculatedDate = dataEntrega ? calcularDataPrevistaAnalise(dataEntrega, prazo) : undefined;
+                      const isSnapshot = prazoSnapshot !== null && prazoSnapshot !== undefined;
                       return (
                         <Input
                           type="date"
                           className="h-8"
                           value={formatDateForInput(calculatedDate)}
                           disabled
-                          title={`Calculado: Dt. Entrega + ${prazo} dias (prazo da disciplina "${disc?.nome || 'Desconhecida'}")`}
+                          title={isSnapshot
+                            ? `Histórico: Dt. Entrega + ${prazo} dias (prazo registrado na criação)`
+                            : `Calculado: Dt. Entrega + ${prazo} dias (prazo atual da disciplina - registro antigo)`}
                         />
                       );
                     })()}
