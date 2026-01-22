@@ -27,13 +27,30 @@ export default function Indicadores() {
   const [projetistas, setProjetistas] = useState<Projetista[]>([]);
   const [activeTab, setActiveTab] = useState("geral");
 
-  // Estados dos Filtros
+  // Estados dos Filtros - Hierarquia: Empreendimentos → Obras → Disciplinas → Projetistas → Status → Período
   const [selectedEmpreendimentos, setSelectedEmpreendimentos] = useState<string[]>([]);
+  const [selectedObras, setSelectedObras] = useState<string[]>([]);
+  const [selectedDisciplinas, setSelectedDisciplinas] = useState<string[]>([]);
   const [selectedProjetistas, setSelectedProjetistas] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
+  // Options para os filtros
   const empreendimentoOptions = useMemo(() => empreendimentos.map(e => ({ label: e.nome, value: e.id })), [empreendimentos]);
+
+  // Obras filtradas por empreendimentos selecionados
+  const obraOptions = useMemo(() => {
+    if (selectedEmpreendimentos.length === 0) {
+      return obras.map(o => ({ label: o.nome, value: o.id }));
+    }
+    return obras
+      .filter(o => selectedEmpreendimentos.includes(o.empreendimentoId))
+      .map(o => ({ label: o.nome, value: o.id }));
+  }, [obras, selectedEmpreendimentos]);
+
+  // Disciplinas - sempre disponíveis (não dependem de hierarquia no banco)
+  const disciplinaOptions = useMemo(() => disciplinas.map(d => ({ label: d.nome, value: d.id })), [disciplinas]);
+
   const projetistaOptions = useMemo(() => projetistas.map(e => ({ label: e.nome, value: e.id })), [projetistas]);
 
   const statusOptions = [
@@ -42,18 +59,35 @@ export default function Indicadores() {
     { label: 'Atrasado', value: 'atrasado' },
   ];
 
+  // Limpar filtros dependentes quando o pai muda
+  useEffect(() => {
+    // Se empreendimentos mudar, limpa obras que não pertencem mais aos empreendimentos selecionados
+    if (selectedEmpreendimentos.length > 0) {
+      const obrasValidas = obras
+        .filter(o => selectedEmpreendimentos.includes(o.empreendimentoId))
+        .map(o => o.id);
+      setSelectedObras(prev => prev.filter(id => obrasValidas.includes(id)));
+    }
+  }, [selectedEmpreendimentos, obras]);
+
   const filteredRevisoes = useMemo(() => {
     return revisoes.filter(rev => {
-      // Filtro Empreendimento
+      // 1. Filtro Empreendimento
       if (selectedEmpreendimentos.length > 0 && !selectedEmpreendimentos.includes(rev.empreendimentoId)) return false;
 
-      // Filtro Projetista
+      // 2. Filtro Obra
+      if (selectedObras.length > 0 && !selectedObras.includes(rev.obraId)) return false;
+
+      // 3. Filtro Disciplina
+      if (selectedDisciplinas.length > 0 && !selectedDisciplinas.includes(rev.disciplinaId)) return false;
+
+      // 4. Filtro Projetista
       if (selectedProjetistas.length > 0 && !selectedProjetistas.includes(rev.projetistaId)) return false;
 
-      // Filtro Status
+      // 5. Filtro Status
       if (selectedStatus.length > 0 && !selectedStatus.includes(rev.statusEntrega)) return false;
 
-      // Filtro Período
+      // 6. Filtro Período
       if (dateRange?.from) {
         const dateStr = rev.dataPrevistaEntrega || rev.createdAt;
         if (!dateStr) return false;
@@ -66,7 +100,7 @@ export default function Indicadores() {
 
       return true;
     });
-  }, [revisoes, selectedEmpreendimentos, selectedProjetistas, selectedStatus, dateRange]);
+  }, [revisoes, selectedEmpreendimentos, selectedObras, selectedDisciplinas, selectedProjetistas, selectedStatus, dateRange]);
 
   useEffect(() => {
     const fetchAll = async (table: string) => {
@@ -139,6 +173,7 @@ export default function Indicadores() {
         const mappedDisc: Disciplina[] = (discRes.data || []).map((item: any) => ({
           id: item.id,
           nome: item.nome,
+          prazoMedioAnalise: item.prazo_medio_analise || 5,
           createdAt: item.created_at,
         }));
 
@@ -240,6 +275,39 @@ export default function Indicadores() {
   const percentualEntregaNoPrazo = totalRevisoes > 0 ? ((entregasNoPrazo / totalRevisoes) * 100).toFixed(1) : '0';
   const percentualAnaliseNoPrazo = totalRevisoes > 0 ? ((analisesNoPrazo / totalRevisoes) * 100).toFixed(1) : '0';
 
+  // Handlers para limpar filtros
+  const handleClearAll = () => {
+    setSelectedEmpreendimentos([]);
+    setSelectedObras([]);
+    setSelectedDisciplinas([]);
+    setSelectedProjetistas([]);
+    setSelectedStatus([]);
+    setDateRange(undefined);
+  };
+
+  const handleRemoveFilter = (type: 'empreendimentos' | 'obras' | 'disciplinas' | 'projetistas' | 'status' | 'periodo', value?: string) => {
+    switch (type) {
+      case 'empreendimentos':
+        if (value) setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
+        break;
+      case 'obras':
+        if (value) setSelectedObras(prev => prev.filter(id => id !== value));
+        break;
+      case 'disciplinas':
+        if (value) setSelectedDisciplinas(prev => prev.filter(id => id !== value));
+        break;
+      case 'projetistas':
+        if (value) setSelectedProjetistas(prev => prev.filter(id => id !== value));
+        break;
+      case 'status':
+        if (value) setSelectedStatus(prev => prev.filter(id => id !== value));
+        break;
+      case 'periodo':
+        setDateRange(undefined);
+        break;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -262,65 +330,81 @@ export default function Indicadores() {
                 PPR 2025
               </TabsTrigger>
             </TabsList>
-
-            {activeTab === 'geral' && (
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <MultiSelect
-                  title="Empreendimentos"
-                  options={empreendimentoOptions}
-                  selected={selectedEmpreendimentos}
-                  onChange={setSelectedEmpreendimentos}
-                />
-                <MultiSelect
-                  title="Projetistas"
-                  options={projetistaOptions}
-                  selected={selectedProjetistas}
-                  onChange={setSelectedProjetistas}
-                />
-                <MultiSelect
-                  title="Status de Entrega"
-                  options={statusOptions}
-                  selected={selectedStatus}
-                  onChange={setSelectedStatus}
-                />
-                <DatePickerWithRange
-                  date={dateRange}
-                  setDate={setDateRange}
-                />
-              </div>
-            )}
           </div>
 
+          {/* Filtros - Hierarquia: Empreendimentos → Obras → Disciplinas → Projetistas → Status → Período */}
+          {activeTab === 'geral' && (
+            <div className="flex flex-wrap items-center gap-2 p-4 bg-card rounded-lg border shadow-sm">
+              {/* 1. Empreendimentos */}
+              <MultiSelect
+                title="Empreendimentos"
+                options={empreendimentoOptions}
+                selected={selectedEmpreendimentos}
+                onChange={setSelectedEmpreendimentos}
+              />
+
+              {/* 2. Obras (depende de Empreendimentos) */}
+              <MultiSelect
+                title="Obras"
+                options={obraOptions}
+                selected={selectedObras}
+                onChange={setSelectedObras}
+                disabled={selectedEmpreendimentos.length === 0}
+                disabledMessage="Selecione ao menos um empreendimento primeiro"
+              />
+
+              {/* 3. Disciplinas */}
+              <MultiSelect
+                title="Disciplinas"
+                options={disciplinaOptions}
+                selected={selectedDisciplinas}
+                onChange={setSelectedDisciplinas}
+              />
+
+              {/* 4. Projetistas */}
+              <MultiSelect
+                title="Projetistas"
+                options={projetistaOptions}
+                selected={selectedProjetistas}
+                onChange={setSelectedProjetistas}
+              />
+
+              {/* 5. Status de Entrega */}
+              <MultiSelect
+                title="Status de Entrega"
+                options={statusOptions}
+                selected={selectedStatus}
+                onChange={setSelectedStatus}
+              />
+
+              {/* 6. Período */}
+              <DatePickerWithRange
+                date={dateRange}
+                setDate={setDateRange}
+              />
+            </div>
+          )}
+
+          {/* Filtros Ativos */}
           {activeTab === 'geral' && (
             <ActiveFilters
               filters={{
                 empreendimentos: selectedEmpreendimentos,
+                obras: selectedObras,
+                disciplinas: selectedDisciplinas,
                 projetistas: selectedProjetistas,
                 status: selectedStatus,
                 periodo: dateRange
               }}
               options={{
                 empreendimentos: empreendimentoOptions,
+                obras: obraOptions,
+                disciplinas: disciplinaOptions,
                 projetistas: projetistaOptions,
                 status: statusOptions
               }}
-              onRemove={(type, value) => {
-                if (type === 'empreendimentos' && value) {
-                  setSelectedEmpreendimentos(prev => prev.filter(id => id !== value));
-                } else if (type === 'projetistas' && value) {
-                  setSelectedProjetistas(prev => prev.filter(id => id !== value));
-                } else if (type === 'status' && value) {
-                  setSelectedStatus(prev => prev.filter(id => id !== value));
-                } else if (type === 'periodo') {
-                  setDateRange(undefined);
-                }
-              }}
-              onClearAll={() => {
-                setSelectedEmpreendimentos([]);
-                setSelectedProjetistas([]);
-                setSelectedStatus([]);
-                setDateRange(undefined);
-              }}
+              onRemove={handleRemoveFilter}
+              onClearAll={handleClearAll}
             />
           )}
         </div>

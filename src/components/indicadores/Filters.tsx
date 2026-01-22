@@ -1,5 +1,5 @@
 import * as React from "react"
-import { CalendarIcon, Check, ChevronsUpDown, X } from "lucide-react"
+import { CalendarIcon, Check, ChevronsUpDown, X, Lock } from "lucide-react"
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, subYears, isValid } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { DateRange } from "react-day-picker"
@@ -29,6 +29,12 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 // --- MultiSelect Component ---
 
@@ -43,6 +49,8 @@ interface MultiSelectProps {
     selected: string[]
     onChange: (selected: string[]) => void
     className?: string
+    disabled?: boolean
+    disabledMessage?: string
 }
 
 export function MultiSelect({
@@ -51,6 +59,8 @@ export function MultiSelect({
     selected,
     onChange,
     className,
+    disabled = false,
+    disabledMessage,
 }: MultiSelectProps) {
     const [open, setOpen] = React.useState(false)
 
@@ -65,47 +75,72 @@ export function MultiSelect({
         onChange([])
     }
 
+    const buttonContent = (
+        <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className={cn(
+                "h-9 w-[180px] justify-between border-dashed bg-background",
+                disabled && "opacity-50 cursor-not-allowed",
+                className
+            )}
+        >
+            <div className="flex items-center gap-1 truncate">
+                {disabled && <Lock className="h-3 w-3 mr-1 text-muted-foreground" />}
+                {selected.length > 0 ? (
+                    <>
+                        <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
+                            {selected.length}
+                        </Badge>
+                        <div className="hidden lg:flex gap-1 truncate">
+                            {selected.length > 2 ? (
+                                <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                                    {selected.length} selecionados
+                                </Badge>
+                            ) : (
+                                options
+                                    .filter((option) => selected.includes(option.value))
+                                    .map((option) => (
+                                        <Badge
+                                            variant="secondary"
+                                            key={option.value}
+                                            className="rounded-sm px-1 font-normal"
+                                        >
+                                            {option.label}
+                                        </Badge>
+                                    ))
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    <span className="text-muted-foreground">{title}</span>
+                )}
+            </div>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+    )
+
+    if (disabled && disabledMessage) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        {buttonContent}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{disabledMessage}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )
+    }
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className={cn("h-9 w-[200px] justify-between border-dashed bg-background", className)}
-                >
-                    <div className="flex items-center gap-1 truncate">
-                        {selected.length > 0 ? (
-                            <>
-                                <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
-                                    {selected.length}
-                                </Badge>
-                                <div className="hidden lg:flex gap-1 truncate">
-                                    {selected.length > 2 ? (
-                                        <Badge variant="secondary" className="rounded-sm px-1 font-normal">
-                                            {selected.length} selecionados
-                                        </Badge>
-                                    ) : (
-                                        options
-                                            .filter((option) => selected.includes(option.value))
-                                            .map((option) => (
-                                                <Badge
-                                                    variant="secondary"
-                                                    key={option.value}
-                                                    className="rounded-sm px-1 font-normal"
-                                                >
-                                                    {option.label}
-                                                </Badge>
-                                            ))
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            <span className="text-muted-foreground">{title}</span>
-                        )}
-                    </div>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
+                {buttonContent}
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" align="start">
                 <Command>
@@ -244,7 +279,7 @@ export function DatePickerWithRange({ // Mantendo nome para compatibilidade, mas
                         id="date"
                         variant={"outline"}
                         className={cn(
-                            "h-9 w-[260px] justify-start text-left font-normal border-dashed bg-background",
+                            "h-9 w-[220px] justify-start text-left font-normal border-dashed bg-background",
                             !date && "text-muted-foreground"
                         )}
                     >
@@ -259,7 +294,7 @@ export function DatePickerWithRange({ // Mantendo nome para compatibilidade, mas
                                 format(date.from, "MMM/yyyy", { locale: ptBR })
                             )
                         ) : (
-                            <span>Selecione o período</span>
+                            <span>Período</span>
                         )}
                     </Button>
                 </PopoverTrigger>
@@ -340,26 +375,33 @@ export function DatePickerWithRange({ // Mantendo nome para compatibilidade, mas
 }
 
 // --- ActiveFilters Component ---
+// Ordem hierárquica: Empreendimentos → Obras → Disciplinas → Projetistas → Status → Período
 
 interface ActiveFiltersProps {
     filters: {
         empreendimentos: string[]
+        obras: string[]
+        disciplinas: string[]
         projetistas: string[]
         status: string[]
         periodo: DateRange | undefined
     }
     options: {
         empreendimentos: Option[]
+        obras: Option[]
+        disciplinas: Option[]
         projetistas: Option[]
         status: Option[]
     }
-    onRemove: (type: 'empreendimentos' | 'projetistas' | 'status' | 'periodo', value?: string) => void
+    onRemove: (type: 'empreendimentos' | 'obras' | 'disciplinas' | 'projetistas' | 'status' | 'periodo', value?: string) => void
     onClearAll: () => void
 }
 
 export function ActiveFilters({ filters, options, onRemove, onClearAll }: ActiveFiltersProps) {
     const hasFilters =
         filters.empreendimentos.length > 0 ||
+        filters.obras.length > 0 ||
+        filters.disciplinas.length > 0 ||
         filters.projetistas.length > 0 ||
         filters.status.length > 0 ||
         filters.periodo?.from !== undefined
@@ -367,17 +409,18 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
     if (!hasFilters) return null
 
     return (
-        <div className="flex flex-wrap items-center gap-2 pt-2">
+        <div className="flex flex-wrap items-center gap-2 py-3 px-4 bg-muted/30 rounded-lg border border-dashed">
             <span className="text-sm font-medium text-muted-foreground mr-2">Filtros ativos:</span>
 
+            {/* 1. Empreendimentos */}
             {filters.empreendimentos.map((id) => {
                 const label = options.empreendimentos.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
-                        <span className="text-muted-foreground">Emp:</span> {label}
+                    <Badge key={`emp-${id}`} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-blue-50 text-blue-700 border-blue-200">
+                        <span className="text-blue-500 text-xs">Emp:</span> {label}
                         <button
                             onClick={() => onRemove('empreendimentos', id)}
-                            className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                            className="ml-1 rounded-full p-0.5 hover:bg-blue-200"
                         >
                             <X className="h-3 w-3" />
                             <span className="sr-only">Remover</span>
@@ -386,14 +429,49 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
                 )
             })}
 
+            {/* 2. Obras */}
+            {filters.obras.map((id) => {
+                const label = options.obras.find(o => o.value === id)?.label || id
+                return (
+                    <Badge key={`obra-${id}`} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-purple-50 text-purple-700 border-purple-200">
+                        <span className="text-purple-500 text-xs">Obra:</span> {label}
+                        <button
+                            onClick={() => onRemove('obras', id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-purple-200"
+                        >
+                            <X className="h-3 w-3" />
+                            <span className="sr-only">Remover</span>
+                        </button>
+                    </Badge>
+                )
+            })}
+
+            {/* 3. Disciplinas */}
+            {filters.disciplinas.map((id) => {
+                const label = options.disciplinas.find(o => o.value === id)?.label || id
+                return (
+                    <Badge key={`disc-${id}`} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-green-50 text-green-700 border-green-200">
+                        <span className="text-green-500 text-xs">Disc:</span> {label}
+                        <button
+                            onClick={() => onRemove('disciplinas', id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-green-200"
+                        >
+                            <X className="h-3 w-3" />
+                            <span className="sr-only">Remover</span>
+                        </button>
+                    </Badge>
+                )
+            })}
+
+            {/* 4. Projetistas */}
             {filters.projetistas.map((id) => {
                 const label = options.projetistas.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
-                        <span className="text-muted-foreground">Proj:</span> {label}
+                    <Badge key={`proj-${id}`} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-amber-50 text-amber-700 border-amber-200">
+                        <span className="text-amber-500 text-xs">Proj:</span> {label}
                         <button
                             onClick={() => onRemove('projetistas', id)}
-                            className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                            className="ml-1 rounded-full p-0.5 hover:bg-amber-200"
                         >
                             <X className="h-3 w-3" />
                             <span className="sr-only">Remover</span>
@@ -402,14 +480,15 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
                 )
             })}
 
+            {/* 5. Status */}
             {filters.status.map((id) => {
                 const label = options.status.find(o => o.value === id)?.label || id
                 return (
-                    <Badge key={id} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
-                        <span className="text-muted-foreground">Status:</span> {label}
+                    <Badge key={`status-${id}`} variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-rose-50 text-rose-700 border-rose-200">
+                        <span className="text-rose-500 text-xs">Status:</span> {label}
                         <button
                             onClick={() => onRemove('status', id)}
-                            className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                            className="ml-1 rounded-full p-0.5 hover:bg-rose-200"
                         >
                             <X className="h-3 w-3" />
                             <span className="sr-only">Remover</span>
@@ -418,14 +497,15 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
                 )
             })}
 
+            {/* 6. Período */}
             {filters.periodo?.from && (
-                <Badge variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm">
-                    <span className="text-muted-foreground">Período:</span>
+                <Badge variant="secondary" className="rounded-sm h-7 px-2 flex items-center gap-1 border shadow-sm bg-slate-50 text-slate-700 border-slate-200">
+                    <span className="text-slate-500 text-xs">Período:</span>
                     {format(filters.periodo.from, "MMM/yyyy", { locale: ptBR })}
                     {filters.periodo.to ? ` → ${format(filters.periodo.to, "MMM/yyyy", { locale: ptBR })}` : ''}
                     <button
                         onClick={() => onRemove('periodo')}
-                        className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                        className="ml-1 rounded-full p-0.5 hover:bg-slate-200"
                     >
                         <X className="h-3 w-3" />
                         <span className="sr-only">Remover</span>
@@ -436,7 +516,7 @@ export function ActiveFilters({ filters, options, onRemove, onClearAll }: Active
             <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-muted-foreground hover:text-foreground ml-auto sm:ml-0"
+                className="h-7 px-3 text-muted-foreground hover:text-foreground hover:bg-destructive/10 ml-auto"
                 onClick={onClearAll}
             >
                 Limpar tudo
