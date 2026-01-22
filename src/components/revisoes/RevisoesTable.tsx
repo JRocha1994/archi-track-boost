@@ -1221,7 +1221,9 @@ export function RevisoesTable({
                     className="h-8"
                     value={formatDateForInput(newRow.dataEntrega)}
                     onChange={(e) => {
-                      const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
+                      const disc = disciplinas.find(d => d.id === newRow.disciplinaId);
+                      const prazo = disc?.prazoMedioAnalise || 5;
+                      const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value, prazo);
                       setNewRow({ ...newRow, dataEntrega: e.target.value, dataPrevistaAnalise });
                     }}
                   />
@@ -1232,7 +1234,7 @@ export function RevisoesTable({
                     className="h-8"
                     value={formatDateForInput(newRow.dataPrevistaAnalise)}
                     disabled
-                    title="Calculado automaticamente como Data de Entrega + 5 dias"
+                    title={`Calculado automaticamente: Dt. Entrega + ${disciplinas.find(d => d.id === newRow.disciplinaId)?.prazoMedioAnalise || 5} dias (prazo da disciplina)`}
                   />
                 </TableCell>
                 <TableCell>
@@ -1413,7 +1415,9 @@ export function RevisoesTable({
                         className="h-8"
                         value={formatDateForInput(editData.dataEntrega)}
                         onChange={(e) => {
-                          const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
+                          const disc = disciplinas.find(d => d.id === editData.disciplinaId);
+                          const prazo = disc?.prazoMedioAnalise || 5;
+                          const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value, prazo);
                           setEditingRows({
                             ...editingRows,
                             [revisao.id]: { ...editData, dataEntrega: e.target.value, dataPrevistaAnalise }
@@ -1426,7 +1430,9 @@ export function RevisoesTable({
                         className="h-8"
                         value={formatDateForInput(revisao.dataEntrega)}
                         onChange={(e) => {
-                          const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
+                          const disc = disciplinas.find(d => d.id === revisao.disciplinaId);
+                          const prazo = disc?.prazoMedioAnalise || 5;
+                          const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value, prazo);
                           const statusEntrega = calcularStatusEntrega(revisao.dataPrevistaEntrega, e.target.value);
                           const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, revisao.dataAnalise);
                           const updatedRevisoes = revisoes.map(r =>
@@ -1440,13 +1446,22 @@ export function RevisoesTable({
                     )}
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="date"
-                      className="h-8"
-                      value={formatDateForInput(isEditing ? editData.dataPrevistaAnalise : revisao.dataPrevistaAnalise)}
-                      disabled
-                      title="Calculado automaticamente como Data de Entrega + 5 dias"
-                    />
+                    {(() => {
+                      // Calcula dinamicamente baseado no prazo atual da disciplina
+                      const disc = disciplinas.find(d => d.id === revisao.disciplinaId);
+                      const prazo = disc?.prazoMedioAnalise || 5;
+                      const dataEntrega = isEditing ? editData.dataEntrega : revisao.dataEntrega;
+                      const calculatedDate = dataEntrega ? calcularDataPrevistaAnalise(dataEntrega, prazo) : undefined;
+                      return (
+                        <Input
+                          type="date"
+                          className="h-8"
+                          value={formatDateForInput(calculatedDate)}
+                          disabled
+                          title={`Calculado: Dt. Entrega + ${prazo} dias (prazo da disciplina "${disc?.nome || 'Desconhecida'}")`}
+                        />
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {isEditing ? (
