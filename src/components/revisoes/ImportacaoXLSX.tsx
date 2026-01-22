@@ -58,6 +58,10 @@ export function ImportacaoXLSX({
     return item?.id;
   };
 
+  const findDisciplinaByName = (name: string): Disciplina | undefined => {
+    return disciplinas.find(d => d.nome.toLowerCase() === name.toLowerCase());
+  };
+
   /**
    * Converte um valor de data para o formato yyyy-MM-dd esperado pelos inputs type="date"
    * Lida com: números seriais do Excel, strings em diversos formatos, objetos Date
@@ -132,7 +136,10 @@ export function ImportacaoXLSX({
       jsonData.forEach((row: any, index: number) => {
         const empreendimentoId = findIdByName(row.Empreendimento, empreendimentos);
         const obraId = findIdByName(row.Obra, obras);
-        const disciplinaId = findIdByName(row.Disciplina, disciplinas);
+        // const disciplinaId = findIdByName(row.Disciplina, disciplinas);
+        const disciplinaObj = findDisciplinaByName(row.Disciplina);
+        const disciplinaId = disciplinaObj?.id;
+        const prazo = disciplinaObj?.prazoMedioAnalise || 5;
         const projetistaId = findIdByName(row.Projetista, projetistas);
 
         // Validar cada entidade individualmente
@@ -211,7 +218,7 @@ export function ImportacaoXLSX({
           return;
         }
 
-        const dataPrevistaAnalise = calcularDataPrevistaAnalise(dtEntrega);
+        const dataPrevistaAnalise = calcularDataPrevistaAnalise(dtEntrega, prazo);
         const statusEntrega = calcularStatusEntrega(dtPrevistaEntrega, dtEntrega);
         const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, dtAnalise);
 
@@ -230,6 +237,7 @@ export function ImportacaoXLSX({
           justificativaRevisao: row['Justificativa da Revisão'] || '',
           statusEntrega,
           statusAnalise,
+          prazoMedioAnalise: prazo,
           createdAt: new Date().toISOString(),
         });
       });
@@ -274,6 +282,7 @@ export function ImportacaoXLSX({
           justificativa_revisao: r.justificativaRevisao || null,
           status_entrega: r.statusEntrega,
           status_analise: r.statusAnalise,
+          prazo_medio_analise: r.prazoMedioAnalise,
           user_id: session.user.id,
         }));
 
@@ -304,6 +313,7 @@ export function ImportacaoXLSX({
           justificativaRevisao: item.justificativa_revisao,
           statusEntrega: item.status_entrega,
           statusAnalise: item.status_analise,
+          prazoMedioAnalise: item.prazo_medio_analise || 5,
           createdAt: item.created_at,
         }));
 

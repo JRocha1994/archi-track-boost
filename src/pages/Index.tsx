@@ -102,6 +102,7 @@ export default function Index() {
       const disciplinasMapped: Disciplina[] = (discRes.data || []).map((item) => ({
         id: item.id,
         nome: item.nome,
+        prazoMedioAnalise: (item as any).prazo_medio_analise || 5,
         createdAt: item.created_at,
       }));
 
@@ -125,8 +126,10 @@ export default function Index() {
         dataPrevistaAnalise: item.data_prevista_analise || undefined,
         dataAnalise: item.data_analise || undefined,
         justificativa: item.justificativa,
+        justificativaRevisao: item.justificativa_revisao || undefined,
         statusEntrega: item.status_entrega,
         statusAnalise: item.status_analise,
+        prazoMedioAnalise: item.prazo_medio_analise || undefined,
         createdAt: item.created_at,
       }));
 

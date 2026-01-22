@@ -545,7 +545,10 @@ export function RevisoesTable({
       return;
     }
 
-    const dataPrevistaAnalise = calcularDataPrevistaAnalise(newRow.dataEntrega);
+    const selectedDisciplina = disciplinas.find(d => d.id === newRow.disciplinaId);
+    const prazo = selectedDisciplina?.prazoMedioAnalise || 5;
+
+    const dataPrevistaAnalise = calcularDataPrevistaAnalise(newRow.dataEntrega, prazo);
     const statusEntrega = calcularStatusEntrega(newRow.dataPrevistaEntrega!, newRow.dataEntrega);
     const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, newRow.dataAnalise);
 
@@ -574,6 +577,7 @@ export function RevisoesTable({
           justificativa_revisao: newRow.justificativaRevisao || null,
           status_entrega: statusEntrega,
           status_analise: statusAnalise,
+          prazo_medio_analise: prazo,
           user_id: user.id,
         } as any)
         .select('*')
@@ -596,6 +600,7 @@ export function RevisoesTable({
         justificativaRevisao: (data as any).justificativa_revisao,
         statusEntrega: data.status_entrega,
         statusAnalise: data.status_analise,
+        prazoMedioAnalise: (data as any).prazo_medio_analise || prazo, // Fallback if DB column is missing/null
         createdAt: data.created_at,
       };
 
@@ -670,7 +675,21 @@ export function RevisoesTable({
       return;
     }
 
-    const dataPrevistaAnalise = calcularDataPrevistaAnalise(editedRevisao.dataEntrega);
+    const originalRevisao = revisoes.find(r => r.id === id);
+
+    // Calcula prazo
+    let prazoParaCalculo = 5;
+    const disciplinaAtual = disciplinas.find(d => d.id === editedRevisao.disciplinaId);
+
+    if (originalRevisao && editedRevisao.disciplinaId !== originalRevisao.disciplinaId) {
+      // Mudou disciplina: pega o prazo da nova
+      prazoParaCalculo = disciplinaAtual?.prazoMedioAnalise || 5;
+    } else {
+      // Mesma disciplina: tenta usar snapshot, se não tiver usa da disciplina
+      prazoParaCalculo = editedRevisao.prazoMedioAnalise ?? disciplinaAtual?.prazoMedioAnalise ?? 5;
+    }
+
+    const dataPrevistaAnalise = calcularDataPrevistaAnalise(editedRevisao.dataEntrega, prazoParaCalculo);
     const statusEntrega = calcularStatusEntrega(
       editedRevisao.dataPrevistaEntrega!,
       editedRevisao.dataEntrega
@@ -704,6 +723,7 @@ export function RevisoesTable({
           justificativa: editedRevisao.justificativa!,
           justificativa_revisao: editedRevisao.justificativaRevisao || null,
           status_analise: statusAnalise,
+          prazo_medio_analise: prazoParaCalculo,
           updated_at: new Date().toISOString(),
         } as any)
         .eq('id', id)
@@ -727,6 +747,7 @@ export function RevisoesTable({
         justificativaRevisao: (data as any).justificativa_revisao,
         statusEntrega: data.status_entrega,
         statusAnalise: data.status_analise,
+        prazoMedioAnalise: (data as any).prazo_medio_analise,
         createdAt: data.created_at,
       };
 

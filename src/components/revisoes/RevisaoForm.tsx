@@ -47,8 +47,8 @@ export function RevisaoForm({
     console.log('=== INÍCIO handleSubmit ===');
     console.log('formData:', formData);
 
-    if (!formData.empreendimentoId || !formData.obraId || !formData.disciplinaId || 
-        !formData.projetistaId || !formData.numeroRevisao || !formData.dataPrevistaEntrega || !formData.justificativa) {
+    if (!formData.empreendimentoId || !formData.obraId || !formData.disciplinaId ||
+      !formData.projetistaId || !formData.numeroRevisao || !formData.dataPrevistaEntrega || !formData.justificativa) {
       console.log('Campos obrigatórios faltando');
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
@@ -60,7 +60,10 @@ export function RevisaoForm({
       return;
     }
 
-    const dataPrevistaAnalise = calcularDataPrevistaAnalise(formData.dataEntrega || undefined);
+    const selectedDisciplina = disciplinas.find(d => d.id === formData.disciplinaId);
+    const prazoMedio = selectedDisciplina?.prazoMedioAnalise || 5;
+
+    const dataPrevistaAnalise = calcularDataPrevistaAnalise(formData.dataEntrega || undefined, prazoMedio);
     const statusEntrega = calcularStatusEntrega(formData.dataPrevistaEntrega, formData.dataEntrega || undefined);
     const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, formData.dataAnalise || undefined);
 
@@ -108,6 +111,7 @@ export function RevisaoForm({
           justificativa: formData.justificativa,
           status_entrega: statusEntrega,
           status_analise: statusAnalise,
+          prazo_medio_analise: prazoMedio,
           user_id: user.id,
         })
         .select('*')
@@ -134,6 +138,7 @@ export function RevisaoForm({
         justificativa: data.justificativa,
         statusEntrega: data.status_entrega,
         statusAnalise: data.status_analise,
+        prazoMedioAnalise: (data as any).prazo_medio_analise,
         createdAt: data.created_at,
       };
 
@@ -148,7 +153,7 @@ export function RevisaoForm({
       });
       return;
     }
-    
+
     setFormData({
       empreendimentoId: formData.empreendimentoId,
       obraId: formData.obraId,
@@ -205,7 +210,17 @@ export function RevisaoForm({
           <Label htmlFor="disciplina">Disciplina *</Label>
           <Select
             value={formData.disciplinaId}
-            onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
+            onValueChange={(value) => {
+              const disc = disciplinas.find(d => d.id === value);
+              const prazo = disc?.prazoMedioAnalise || 5;
+              const novaPrevistaAnalise = calcularDataPrevistaAnalise(formData.dataEntrega, prazo);
+
+              setFormData({
+                ...formData,
+                disciplinaId: value,
+                dataPrevistaAnalise: novaPrevistaAnalise || ''
+              });
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione" />
@@ -265,7 +280,9 @@ export function RevisaoForm({
             type="date"
             value={formData.dataEntrega}
             onChange={(e) => {
-              const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value);
+              const selectedDisciplina = disciplinas.find(d => d.id === formData.disciplinaId);
+              const prazo = selectedDisciplina?.prazoMedioAnalise || 5;
+              const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value, prazo);
               setFormData({ ...formData, dataEntrega: e.target.value, dataPrevistaAnalise: dataPrevistaAnalise || '' });
             }}
           />

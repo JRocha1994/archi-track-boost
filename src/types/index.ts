@@ -14,6 +14,7 @@ export interface Obra {
 export interface Disciplina {
   id: string;
   nome: string;
+  prazoMedioAnalise: number;
   createdAt: string;
 }
 
@@ -43,5 +44,6 @@ export interface Revisao {
   justificativaRevisao?: string;
   statusEntrega: StatusEntrega;
   statusAnalise: StatusAnalise;
+  prazoMedioAnalise?: number;
   createdAt: string;
 }

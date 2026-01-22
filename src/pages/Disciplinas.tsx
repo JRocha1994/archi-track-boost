@@ -17,6 +17,7 @@ export default function Disciplinas() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Disciplina | null>(null);
   const [nome, setNome] = useState('');
+  const [prazo, setPrazo] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -44,6 +45,7 @@ export default function Disciplinas() {
       const mapped: Disciplina[] = (data || []).map((item) => ({
         id: item.id,
         nome: item.nome,
+        prazoMedioAnalise: (item as any).prazo_medio_analise || 5,
         createdAt: item.created_at,
       }));
 
@@ -82,6 +84,7 @@ export default function Disciplinas() {
           .from('disciplinas')
           .update({
             nome,
+            prazo_medio_analise: prazo,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingItem.id)
@@ -93,6 +96,7 @@ export default function Disciplinas() {
         const updated: Disciplina = {
           id: data.id,
           nome: data.nome,
+          prazoMedioAnalise: (data as any).prazo_medio_analise || 5,
           createdAt: data.created_at,
         };
 
@@ -105,6 +109,7 @@ export default function Disciplinas() {
           .from('disciplinas')
           .insert({
             nome,
+            prazo_medio_analise: prazo,
             user_id: user.id,
           })
           .select('*')
@@ -115,6 +120,7 @@ export default function Disciplinas() {
         const newItem: Disciplina = {
           id: data.id,
           nome: data.nome,
+          prazoMedioAnalise: (data as any).prazo_medio_analise || 5,
           createdAt: data.created_at,
         };
 
@@ -133,6 +139,7 @@ export default function Disciplinas() {
     }
 
     setNome('');
+    setPrazo(5);
     setEditingItem(null);
     setIsDialogOpen(false);
   };
@@ -140,6 +147,7 @@ export default function Disciplinas() {
   const handleEdit = (item: Disciplina) => {
     setEditingItem(item);
     setNome(item.nome);
+    setPrazo(item.prazoMedioAnalise || 5);
     setIsDialogOpen(true);
   };
 
@@ -199,6 +207,7 @@ export default function Disciplinas() {
       const newItems: Disciplina[] = (data || []).map((item) => ({
         id: item.id,
         nome: item.nome,
+        prazoMedioAnalise: 5,
         createdAt: item.created_at,
       }));
 
@@ -226,7 +235,7 @@ export default function Disciplinas() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setEditingItem(null); setNome(''); }}>
+              <Button onClick={() => { setEditingItem(null); setNome(''); setPrazo(5); }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar
               </Button>
@@ -245,6 +254,16 @@ export default function Disciplinas() {
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     placeholder="Ex: Arquitetura, Estrutura, Hidráulica"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="prazo">Prazo Médio de Análise (dias)</Label>
+                  <Input
+                    id="prazo"
+                    type="number"
+                    value={prazo}
+                    onChange={(e) => setPrazo(Number(e.target.value))}
+                    min="1"
                   />
                 </div>
                 <Button type="submit" className="w-full">
@@ -272,6 +291,7 @@ export default function Disciplinas() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
+                    <TableHead>Prazo Médio</TableHead>
                     <TableHead>Data de Criação</TableHead>
                     <TableHead className="w-24">Ações</TableHead>
                   </TableRow>
@@ -280,6 +300,7 @@ export default function Disciplinas() {
                   {disciplinas.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.nome}</TableCell>
+                      <TableCell>{item.prazoMedioAnalise} dias</TableCell>
                       <TableCell>{new Date(item.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
