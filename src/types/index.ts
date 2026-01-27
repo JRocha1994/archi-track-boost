@@ -26,7 +26,7 @@ export interface Projetista {
   createdAt: string;
 }
 
-export type StatusEntrega = "pendente" | "no-prazo" | "entregue-depois-do-prazo";
+export type StatusEntrega = "pendente" | "no-prazo" | "entregue-depois-do-prazo" | "atrasado";
 export type StatusAnalise = "no-prazo" | "atrasado" | "pendente";
 
 export interface Revisao {
