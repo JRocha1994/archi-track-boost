@@ -1,32 +1,22 @@
 import type { StatusEntrega, StatusAnalise } from '@/types';
 
 export function calcularStatusEntrega(dataPrevistaEntrega: string, dataEntrega?: string): StatusEntrega {
+  // 1. Pendente: Dt. de Entrega vazia
+  if (!dataEntrega) {
+    return 'pendente';
+  }
+
+  // 2 e 3. Comparação de datas (quando ambas estão preenchidas)
   const prevista = new Date(dataPrevistaEntrega);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0); // Normaliza para meia-noite
-  prevista.setHours(0, 0, 0, 0);
+  const entrega = new Date(dataEntrega);
 
-  // Se tem data de entrega
-  if (dataEntrega) {
-    const entrega = new Date(dataEntrega);
-    entrega.setHours(0, 0, 0, 0);
-
-    // Entregue após o prazo = "Entregue fora do prazo"
-    if (entrega > prevista) {
-      return 'entregue-fora-prazo';
-    }
-    // Entregue dentro do prazo
-    return 'no-prazo';
+  // Entregue depois do prazo: Dt. de Entrega > Dt. Prevista Entrega
+  if (entrega > prevista) {
+    return 'entregue-depois-do-prazo';
   }
 
-  // Não entregue ainda
-  // Se hoje > data prevista = "Atrasado" (pendente e com prazo estourado)
-  if (hoje > prevista) {
-    return 'atrasado';
-  }
-
-  // Ainda dentro do prazo, aguardando entrega
-  return 'pendente';
+  // No prazo: Dt. de Entrega <= Dt. Prevista Entrega
+  return 'no-prazo';
 }
 
 export function calcularStatusAnalise(dataPrevistaAnalise?: string, dataAnalise?: string): StatusAnalise {

@@ -598,7 +598,7 @@ export function RevisoesTable({
         dataAnalise: data.data_analise || undefined,
         justificativa: data.justificativa,
         justificativaRevisao: (data as any).justificativa_revisao,
-        statusEntrega: data.status_entrega,
+        statusEntrega: calcularStatusEntrega(data.data_prevista_entrega, data.data_entrega || undefined),
         statusAnalise: data.status_analise,
         prazoMedioAnalise: (data as any).prazo_medio_analise || prazo, // Fallback if DB column is missing/null
         createdAt: data.created_at,
@@ -745,7 +745,7 @@ export function RevisoesTable({
         dataAnalise: data.data_analise || undefined,
         justificativa: data.justificativa,
         justificativaRevisao: (data as any).justificativa_revisao,
-        statusEntrega: data.status_entrega,
+        statusEntrega: calcularStatusEntrega(data.data_prevista_entrega, data.data_entrega || undefined),
         statusAnalise: data.status_analise,
         prazoMedioAnalise: (data as any).prazo_medio_analise,
         createdAt: data.created_at,

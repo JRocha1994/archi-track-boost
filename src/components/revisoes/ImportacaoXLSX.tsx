@@ -311,7 +311,7 @@ export function ImportacaoXLSX({
           dataAnalise: item.data_analise,
           justificativa: item.justificativa,
           justificativaRevisao: item.justificativa_revisao,
-          statusEntrega: item.status_entrega,
+          statusEntrega: calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega || undefined),
           statusAnalise: item.status_analise,
           prazoMedioAnalise: item.prazo_medio_analise || 5,
           createdAt: item.created_at,

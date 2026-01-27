@@ -81,7 +81,7 @@ export default function AssistenteIA() {
 
         setEmpreendimentos((empRes.data || []).map((i: any) => ({ id: i.id, nome: i.nome, createdAt: i.created_at })));
         setObras((obrasRes.data || []).map((i: any) => ({ id: i.id, nome: i.nome, empreendimentoId: i.empreendimento_id, createdAt: i.created_at })));
-        setDisciplinas((discRes.data || []).map((i: any) => ({ id: i.id, nome: i.nome, createdAt: i.created_at })));
+        setDisciplinas((discRes.data || []).map((i: any) => ({ id: i.id, nome: i.nome, prazoMedioAnalise: i.prazo_medio_analise || 5, createdAt: i.created_at })));
         setProjetistas((projRes.data || []).map((i: any) => ({ id: i.id, nome: i.nome, email: i.email || undefined, telefone: i.telefone || undefined, createdAt: i.created_at })));
         setRevisoes((revRes.data || []).map((i: any) => ({
           id: i.id,
@@ -95,7 +95,7 @@ export default function AssistenteIA() {
           dataPrevistaAnalise: i.data_prevista_analise || undefined,
           dataAnalise: i.data_analise || undefined,
           justificativa: i.justificativa,
-          statusEntrega: i.status_entrega,
+          statusEntrega: calcularStatusEntrega(i.data_prevista_entrega, i.data_entrega || undefined),
           statusAnalise: i.status_analise,
           createdAt: i.created_at,
         })));
@@ -135,9 +135,9 @@ export default function AssistenteIA() {
   const handleDuplicateRevisao = (revisao: Revisao) => {
     const revisoesRelacionadas = revisoes.filter(
       r => r.empreendimentoId === revisao.empreendimentoId &&
-           r.obraId === revisao.obraId &&
-           r.disciplinaId === revisao.disciplinaId &&
-           r.projetistaId === revisao.projetistaId
+        r.obraId === revisao.obraId &&
+        r.disciplinaId === revisao.disciplinaId &&
+        r.projetistaId === revisao.projetistaId
     );
     const numerosRevisao = revisoesRelacionadas.map(r => r.numeroRevisao);
     const maiorNumero = Math.max(...numerosRevisao, 0);
@@ -334,7 +334,7 @@ export default function AssistenteIA() {
       // Validação e preparação em lote
       const toInsert = drafts.map((d, idx) => {
         if (!d.empreendimentoId || !d.obraId || !d.disciplinaId || !d.projetistaId ||
-            d.numeroRevisao === undefined || d.numeroRevisao === null || !d.dataPrevistaEntrega || !d.justificativa) {
+          d.numeroRevisao === undefined || d.numeroRevisao === null || !d.dataPrevistaEntrega || !d.justificativa) {
           throw new Error(`Linha ${idx + 1}: campos obrigatórios faltando.`);
         }
         const dataPrevistaAnalise = calcularDataPrevistaAnalise(d.dataEntrega);
@@ -357,7 +357,7 @@ export default function AssistenteIA() {
         };
       });
 
-      const { error } = await supabase.from('revisoes').insert(toInsert);
+      const { error } = await supabase.from('revisoes').insert(toInsert as any);
       if (error) throw error;
       toast({ title: 'Revisões salvas com sucesso' });
       setDrafts([]);
@@ -378,7 +378,7 @@ export default function AssistenteIA() {
             dataPrevistaAnalise: i.data_prevista_analise || undefined,
             dataAnalise: i.data_analise || undefined,
             justificativa: i.justificativa,
-            statusEntrega: i.status_entrega,
+            statusEntrega: calcularStatusEntrega(i.data_prevista_entrega, i.data_entrega || undefined),
             statusAnalise: i.status_analise,
             createdAt: i.created_at,
           })));
@@ -490,7 +490,7 @@ export default function AssistenteIA() {
                       {drafts.map((row, i) => (
                         <TableRow key={i}>
                           <TableCell>
-                            <Select value={row.empreendimentoId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, empreendimentoId: v, obraId: '' } : r))}>
+                            <Select value={row.empreendimentoId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, empreendimentoId: v, obraId: '' } : r))}>
                               <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
                               <SelectContent>
                                 {empreendimentos.map(e => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
@@ -498,7 +498,7 @@ export default function AssistenteIA() {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Select value={row.obraId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, obraId: v } : r))}>
+                            <Select value={row.obraId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, obraId: v } : r))}>
                               <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
                               <SelectContent>
                                 {obrasFiltered(row.empreendimentoId).map(o => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
@@ -506,7 +506,7 @@ export default function AssistenteIA() {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Select value={row.disciplinaId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, disciplinaId: v } : r))}>
+                            <Select value={row.disciplinaId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, disciplinaId: v } : r))}>
                               <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
                               <SelectContent>
                                 {disciplinas.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
@@ -514,7 +514,7 @@ export default function AssistenteIA() {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Select value={row.projetistaId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, projetistaId: v } : r))}>
+                            <Select value={row.projetistaId || ''} onValueChange={(v) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, projetistaId: v } : r))}>
                               <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
                               <SelectContent>
                                 {projetistas.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
@@ -523,26 +523,26 @@ export default function AssistenteIA() {
                           </TableCell>
                           <TableCell>
                             <Input type="number" className="h-8" value={row.numeroRevisao ?? ''} min={0} step={1}
-                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, numeroRevisao: e.target.value === '' ? undefined : parseInt(e.target.value) } : r))} />
+                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, numeroRevisao: e.target.value === '' ? undefined : parseInt(e.target.value) } : r))} />
                           </TableCell>
                           <TableCell>
                             <Input type="date" className="h-8" value={row.dataPrevistaEntrega || ''}
-                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, dataPrevistaEntrega: e.target.value } : r))} />
+                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, dataPrevistaEntrega: e.target.value } : r))} />
                           </TableCell>
                           <TableCell>
                             <Input type="date" className="h-8" value={row.dataEntrega || ''}
-                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, dataEntrega: e.target.value, dataPrevistaAnalise: calcularDataPrevistaAnalise(e.target.value) || '' } : r))} />
+                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, dataEntrega: e.target.value, dataPrevistaAnalise: calcularDataPrevistaAnalise(e.target.value) || '' } : r))} />
                           </TableCell>
                           <TableCell>
                             <Input type="date" className="h-8" value={row.dataPrevistaAnalise || ''} disabled title="Calculado automaticamente" />
                           </TableCell>
                           <TableCell>
                             <Input type="date" className="h-8" value={row.dataAnalise || ''}
-                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, dataAnalise: e.target.value } : r))} />
+                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, dataAnalise: e.target.value } : r))} />
                           </TableCell>
                           <TableCell>
                             <Input className="h-8" value={row.justificativa || ''}
-                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx===i ? { ...r, justificativa: e.target.value } : r))} />
+                              onChange={(e) => setDrafts(drafts.map((r, idx) => idx === i ? { ...r, justificativa: e.target.value } : r))} />
                           </TableCell>
                           <TableCell>
                             <Button variant="ghost" size="sm" onClick={() => setDrafts(drafts.filter((_, idx) => idx !== i))}>Remover</Button>
