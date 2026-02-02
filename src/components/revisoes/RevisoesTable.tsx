@@ -117,6 +117,19 @@ function validateRevisionSequence(
     }
   });
 
+  // Log para verificar se há revisões com mesmo empreendimento
+  const mesmoEmp = revisoes.filter(r => r.empreendimentoId === novaRevisao.empreendimentoId);
+  console.log('DEBUG revisões mesmo empreendimento:', mesmoEmp.length);
+  if (mesmoEmp.length > 0) {
+    console.log('DEBUG amostra primeira revisão:', {
+      empreendimentoId: mesmoEmp[0].empreendimentoId,
+      obraId: mesmoEmp[0].obraId,
+      disciplinaId: mesmoEmp[0].disciplinaId,
+      projetistaId: mesmoEmp[0].projetistaId,
+      numeroRevisao: mesmoEmp[0].numeroRevisao
+    });
+  }
+
   const grupo = revisoes.filter(r =>
     r.empreendimentoId === novaRevisao.empreendimentoId &&
     r.obraId === novaRevisao.obraId &&
