@@ -106,6 +106,17 @@ function validateRevisionSequence(
   }
 
   // Filtra revisões do mesmo grupo (Empreendimento, Obra, Disciplina, Projetista)
+  console.log('DEBUG validateRevisionSequence:', {
+    totalRevisoes: revisoes.length,
+    novaRevisao: {
+      empreendimentoId: novaRevisao.empreendimentoId,
+      obraId: novaRevisao.obraId,
+      disciplinaId: novaRevisao.disciplinaId,
+      projetistaId: novaRevisao.projetistaId,
+      numeroRevisao: novaRevisao.numeroRevisao
+    }
+  });
+
   const grupo = revisoes.filter(r =>
     r.empreendimentoId === novaRevisao.empreendimentoId &&
     r.obraId === novaRevisao.obraId &&
@@ -113,6 +124,11 @@ function validateRevisionSequence(
     r.projetistaId === novaRevisao.projetistaId &&
     r.id !== ignoreId
   );
+
+  console.log('DEBUG grupo filtrado:', {
+    grupoLength: grupo.length,
+    numerosRevisao: grupo.map(r => r.numeroRevisao)
+  });
 
 
 
@@ -128,6 +144,8 @@ function validateRevisionSequence(
     : 0;
 
   const expected = maxRev + 1;
+
+  console.log('DEBUG validação:', { maxRev, expected, numero });
 
   if (numero !== expected) {
     return `A revisão informada não segue a sequência correta. A próxima revisão válida é ${expected}.`;
