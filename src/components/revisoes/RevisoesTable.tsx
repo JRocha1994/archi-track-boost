@@ -823,9 +823,42 @@ export function RevisoesTable({
     const maiorNumero = Math.max(...numerosRevisao, 0);
     const novoNumero = maiorNumero + 1;
 
+    // CORREÇÃO AUTOMÁTICA: Verificar se a obra pertence ao empreendimento
+    let obraIdCorrigido = revisao.obraId;
+    const obraOriginal = obras.find(o => o.id === revisao.obraId);
+
+    if (obraOriginal) {
+      // Verificar se a obra pertence ao empreendimento correto
+      const obraPertenceAoEmpreendimento = obraOriginal.empreendimentoId === revisao.empreendimentoId;
+
+      if (!obraPertenceAoEmpreendimento) {
+        // Obra não pertence ao empreendimento - buscar obra com mesmo nome no empreendimento correto
+        const obraCorreta = obras.find(o =>
+          o.nome.toLowerCase() === obraOriginal.nome.toLowerCase() &&
+          o.empreendimentoId === revisao.empreendimentoId
+        );
+
+        if (obraCorreta) {
+          obraIdCorrigido = obraCorreta.id;
+          console.log('DEBUG handleDuplicate - CORREÇÃO AUTOMÁTICA:', {
+            obraOriginal: { id: obraOriginal.id, nome: obraOriginal.nome },
+            obraCorreta: { id: obraCorreta.id, nome: obraCorreta.nome },
+            mensagem: `Obra "${obraOriginal.nome}" corrigida para o empreendimento correto`
+          });
+        } else {
+          // Não encontrou obra com mesmo nome - deixar vazio
+          obraIdCorrigido = '';
+          console.log('DEBUG handleDuplicate - AVISO:', {
+            obraOriginal: { id: obraOriginal.id, nome: obraOriginal.nome },
+            mensagem: `Obra "${obraOriginal.nome}" não encontrada no empreendimento. Campo resetado.`
+          });
+        }
+      }
+    }
+
     setNewRow({
       empreendimentoId: revisao.empreendimentoId,
-      obraId: revisao.obraId, // Mantém todos os campos da revisão original
+      obraId: obraIdCorrigido, // Usa a obra corrigida
       disciplinaId: revisao.disciplinaId,
       projetistaId: revisao.projetistaId,
       numeroRevisao: novoNumero,
