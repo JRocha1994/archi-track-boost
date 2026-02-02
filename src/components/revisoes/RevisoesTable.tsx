@@ -1195,7 +1195,11 @@ export function RevisoesTable({
                     onValueChange={(value) => setNewRow({ ...newRow, empreendimentoId: value, obraId: '' })}
                   >
                     <SelectTrigger className="h-8">
-                      <SelectValue />
+                      <SelectValue placeholder={
+                        newRow.empreendimentoId
+                          ? empreendimentos.find(e => e.id === newRow.empreendimentoId)?.nome || 'Selecione...'
+                          : 'Selecione...'
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {empreendimentos.map((e) => (
@@ -1211,7 +1215,11 @@ export function RevisoesTable({
                     disabled={!newRow.empreendimentoId}
                   >
                     <SelectTrigger className="h-8">
-                      <SelectValue />
+                      <SelectValue placeholder={
+                        newRow.obraId
+                          ? obras.find(o => o.id === newRow.obraId)?.nome || 'Selecione...'
+                          : 'Selecione...'
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {obrasFiltered(newRow.empreendimentoId || '').map((o) => (
@@ -1226,7 +1234,11 @@ export function RevisoesTable({
                     onValueChange={(value) => setNewRow({ ...newRow, disciplinaId: value })}
                   >
                     <SelectTrigger className="h-8">
-                      <SelectValue />
+                      <SelectValue placeholder={
+                        newRow.disciplinaId
+                          ? disciplinas.find(d => d.id === newRow.disciplinaId)?.nome || 'Selecione...'
+                          : 'Selecione...'
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {disciplinas.map((d) => (
@@ -1241,7 +1253,11 @@ export function RevisoesTable({
                     onValueChange={(value) => setNewRow({ ...newRow, projetistaId: value })}
                   >
                     <SelectTrigger className="h-8">
-                      <SelectValue />
+                      <SelectValue placeholder={
+                        newRow.projetistaId
+                          ? projetistas.find(p => p.id === newRow.projetistaId)?.nome || 'Selecione...'
+                          : 'Selecione...'
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       {projetistas.map((p) => (
