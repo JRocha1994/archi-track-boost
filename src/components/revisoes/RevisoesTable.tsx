@@ -825,7 +825,7 @@ export function RevisoesTable({
 
     setNewRow({
       empreendimentoId: revisao.empreendimentoId,
-      obraId: revisao.obraId,
+      obraId: revisao.obraId, // Mantém todos os campos da revisão original
       disciplinaId: revisao.disciplinaId,
       projetistaId: revisao.projetistaId,
       numeroRevisao: novoNumero,
