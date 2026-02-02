@@ -839,7 +839,16 @@ export function RevisoesTable({
     toast({ title: 'Nova revisão criada a partir da anterior' });
   };
 
-  const obrasFiltered = (empId: string) => obras.filter(o => o.empreendimentoId === empId);
+  const obrasFiltered = (empId: string) => {
+    const filtered = obras.filter(o => o.empreendimentoId === empId);
+    console.log('DEBUG obrasFiltered chamado:', {
+      empId,
+      totalObrasNoSistema: obras.length,
+      obrasDoEmpreendimento: filtered.length,
+      obras: filtered.map(o => ({ id: o.id, nome: o.nome }))
+    });
+    return filtered;
+  };
 
   const handleExportXLSX = () => {
     const rows = filteredRevisoes.map((r) => ({
