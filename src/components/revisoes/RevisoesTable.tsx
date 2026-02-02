@@ -797,6 +797,14 @@ export function RevisoesTable({
   };
 
   const handleDuplicate = (revisao: Revisao) => {
+    console.log('DEBUG handleDuplicate - revisão recebida:', {
+      empreendimentoId: revisao.empreendimentoId,
+      obraId: revisao.obraId,
+      disciplinaId: revisao.disciplinaId,
+      projetistaId: revisao.projetistaId,
+      numeroRevisao: revisao.numeroRevisao
+    });
+
     // Encontrar todas as revisões do mesmo projeto/obra/disciplina/projetista
     const revisoesRelacionadas = revisoes.filter(
       r => r.empreendimentoId === revisao.empreendimentoId &&
@@ -804,6 +812,11 @@ export function RevisoesTable({
         r.disciplinaId === revisao.disciplinaId &&
         r.projetistaId === revisao.projetistaId
     );
+
+    console.log('DEBUG handleDuplicate - revisões relacionadas:', {
+      total: revisoesRelacionadas.length,
+      numeros: revisoesRelacionadas.map(r => r.numeroRevisao)
+    });
 
     // Extrair números das revisões e encontrar o maior
     const numerosRevisao = revisoesRelacionadas.map(r => r.numeroRevisao);
