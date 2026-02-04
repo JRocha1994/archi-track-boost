@@ -159,15 +159,36 @@ export function ImportacaoXLSX({
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+      // Ordenar as linhas por grupo (Empreendimento + Obra + Disciplina + Projetista) e número de revisão
+      // Isso permite que revisões fora de ordem na planilha sejam processadas corretamente
+      const sortedData = [...jsonData].map((row: any, originalIndex: number) => ({
+        ...row,
+        _originalLineNumber: originalIndex + 2, // Linha original no Excel (2 = primeira linha de dados)
+        _sortKey: `${(row.Empreendimento || '').toLowerCase()}_${(row.Obra || '').toLowerCase()}_${(row.Disciplina || '').toLowerCase()}_${(row.Projetista || '').toLowerCase()}`,
+        _numeroRevisao: typeof row['Número da Revisão'] === 'number'
+          ? Math.floor(row['Número da Revisão'])
+          : (typeof row['Número da Revisão'] === 'string'
+            ? Math.floor(parseFloat(row['Número da Revisão'].trim()) || 0)
+            : 0)
+      })).sort((a, b) => {
+        // Primeiro ordena pelo grupo (Empreendimento + Obra + Disciplina + Projetista)
+        const groupCompare = a._sortKey.localeCompare(b._sortKey);
+        if (groupCompare !== 0) return groupCompare;
+        // Depois ordena pelo número da revisão dentro do grupo
+        return a._numeroRevisao - b._numeroRevisao;
+      });
+
       const newRevisoes: Revisao[] = [];
       const errors: string[] = [];
 
-      jsonData.forEach((row: any, index: number) => {
+      sortedData.forEach((row: any) => {
+        // Usa o número da linha original do Excel para mensagens de erro
+        const lineNumber = row._originalLineNumber;
         const empreendimentoId = findIdByName(row.Empreendimento, empreendimentos);
 
         // Validar empreendimento primeiro (necessário para validar a obra)
         if (!empreendimentoId) {
-          errors.push(`Linha ${index + 2}: Empreendimento "${row.Empreendimento}" não encontrado`);
+          errors.push(`Linha ${lineNumber}: Empreendimento "${row.Empreendimento}" não encontrado`);
           return;
         }
 
@@ -177,11 +198,11 @@ export function ImportacaoXLSX({
 
         // Validar obra com mensagem específica
         if (!obraResult.found) {
-          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não encontrada no sistema`);
+          errors.push(`Linha ${lineNumber}: Obra "${row.Obra}" não encontrada no sistema`);
           return;
         }
         if (!obraResult.belongsToEmpreendimento) {
-          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não pertence ao empreendimento "${row.Empreendimento}". Cadastre a obra para este empreendimento.`);
+          errors.push(`Linha ${lineNumber}: Obra "${row.Obra}" não pertence ao empreendimento "${row.Empreendimento}". Cadastre a obra para este empreendimento.`);
           return;
         }
 
@@ -190,11 +211,11 @@ export function ImportacaoXLSX({
         const prazo = disciplinaObj?.prazoMedioAnalise || 5;
         const projetistaId = findIdByName(row.Projetista, projetistas);
         if (!disciplinaId) {
-          errors.push(`Linha ${index + 2}: Disciplina "${row.Disciplina}" não encontrada`);
+          errors.push(`Linha ${lineNumber}: Disciplina "${row.Disciplina}" não encontrada`);
           return;
         }
         if (!projetistaId) {
-          errors.push(`Linha ${index + 2}: Projetista "${row.Projetista}" não encontrado`);
+          errors.push(`Linha ${lineNumber}: Projetista "${row.Projetista}" não encontrado`);
           return;
         }
 
@@ -216,7 +237,7 @@ export function ImportacaoXLSX({
         }
 
         if (isNaN(numeroRevisao) || numeroRevisao < 0) {
-          errors.push(`Linha ${index + 2}: Número da revisão deve ser um inteiro válido >= 0`);
+          errors.push(`Linha ${lineNumber}: Número da revisão deve ser um inteiro válido >= 0`);
           return;
         }
 
@@ -238,12 +259,12 @@ export function ImportacaoXLSX({
         );
 
         if (existeNoBanco) {
-          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} já existe no sistema para este conjunto.`);
+          errors.push(`Linha ${lineNumber}: Revisão R${numeroRevisao} já existe no sistema para este conjunto.`);
           return;
         }
 
         if (duplicadaNoArquivo) {
-          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} duplicada dentro do próprio arquivo.`);
+          errors.push(`Linha ${lineNumber}: Revisão R${numeroRevisao} duplicada dentro do próprio arquivo.`);
           return;
         }
 
@@ -275,7 +296,7 @@ export function ImportacaoXLSX({
 
         // A revisão deve ser exatamente o próximo número na sequência
         if (numeroRevisao !== proximoEsperado) {
-          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} não segue a sequência. A próxima revisão válida é R${proximoEsperado}.`);
+          errors.push(`Linha ${lineNumber}: Revisão R${numeroRevisao} não segue a sequência. A próxima revisão válida é R${proximoEsperado}.`);
           return;
         }
 
@@ -285,21 +306,21 @@ export function ImportacaoXLSX({
 
         // Validações de datas inválidas (ex: 30 de Fevereiro)
         if (row['Dt. Prevista Entrega'] && !dtPrevistaEntrega) {
-          errors.push(`Linha ${index + 2}: Data Prevista Entrega inválida ou inexistente ("${row['Dt. Prevista Entrega']}")`);
+          errors.push(`Linha ${lineNumber}: Data Prevista Entrega inválida ou inexistente ("${row['Dt. Prevista Entrega']}")`);
           return;
         }
         if (row['Dt. de Entrega'] && !dtEntrega) {
-          errors.push(`Linha ${index + 2}: Data de Entrega inválida ou inexistente ("${row['Dt. de Entrega']}")`);
+          errors.push(`Linha ${lineNumber}: Data de Entrega inválida ou inexistente ("${row['Dt. de Entrega']}")`);
           return;
         }
         if (row['Data de Análise'] && !dtAnalise) {
-          errors.push(`Linha ${index + 2}: Data de Análise inválida ou inexistente ("${row['Data de Análise']}")`);
+          errors.push(`Linha ${lineNumber}: Data de Análise inválida ou inexistente ("${row['Data de Análise']}")`);
           return;
         }
 
         // Validação de campos obrigatórios (numeroRevisao pode ser 0, então usa typeof)
         if (typeof numeroRevisao !== 'number' || isNaN(numeroRevisao) || !dtPrevistaEntrega) {
-          errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão ou Dt Prevista Entrega)`);
+          errors.push(`Linha ${lineNumber}: Campos obrigatórios faltando (Nro Revisão ou Dt Prevista Entrega)`);
           return;
         }
 
