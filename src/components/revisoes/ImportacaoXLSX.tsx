@@ -63,6 +63,35 @@ export function ImportacaoXLSX({
   };
 
   /**
+   * Busca uma obra pelo nome E valida se ela pertence ao empreendimento especificado
+   * Retorna { id, found, belongsToEmpreendimento } para permitir mensagens de erro específicas
+   */
+  const findObraByNameAndEmpreendimento = (
+    obraNome: string,
+    empreendimentoId: string
+  ): { id: string | undefined; found: boolean; belongsToEmpreendimento: boolean } => {
+    // Primeiro, busca qualquer obra com esse nome
+    const obraEncontrada = obras.find(o => o.nome.toLowerCase() === obraNome.toLowerCase());
+
+    if (!obraEncontrada) {
+      return { id: undefined, found: false, belongsToEmpreendimento: false };
+    }
+
+    // Agora busca a obra com esse nome que pertence ao empreendimento correto
+    const obraCorreta = obras.find(
+      o => o.nome.toLowerCase() === obraNome.toLowerCase() &&
+        o.empreendimentoId === empreendimentoId
+    );
+
+    if (obraCorreta) {
+      return { id: obraCorreta.id, found: true, belongsToEmpreendimento: true };
+    }
+
+    // Obra existe mas não pertence ao empreendimento
+    return { id: undefined, found: true, belongsToEmpreendimento: false };
+  };
+
+  /**
    * Converte um valor de data para o formato yyyy-MM-dd esperado pelos inputs type="date"
    * Lida com: números seriais do Excel, strings em diversos formatos, objetos Date
    */
@@ -135,22 +164,31 @@ export function ImportacaoXLSX({
 
       jsonData.forEach((row: any, index: number) => {
         const empreendimentoId = findIdByName(row.Empreendimento, empreendimentos);
-        const obraId = findIdByName(row.Obra, obras);
-        // const disciplinaId = findIdByName(row.Disciplina, disciplinas);
-        const disciplinaObj = findDisciplinaByName(row.Disciplina);
-        const disciplinaId = disciplinaObj?.id;
-        const prazo = disciplinaObj?.prazoMedioAnalise || 5;
-        const projetistaId = findIdByName(row.Projetista, projetistas);
 
-        // Validar cada entidade individualmente
+        // Validar empreendimento primeiro (necessário para validar a obra)
         if (!empreendimentoId) {
           errors.push(`Linha ${index + 2}: Empreendimento "${row.Empreendimento}" não encontrado`);
           return;
         }
-        if (!obraId) {
-          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não encontrada`);
+
+        // Buscar obra validando se pertence ao empreendimento
+        const obraResult = findObraByNameAndEmpreendimento(row.Obra, empreendimentoId);
+        const obraId = obraResult.id;
+
+        // Validar obra com mensagem específica
+        if (!obraResult.found) {
+          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não encontrada no sistema`);
           return;
         }
+        if (!obraResult.belongsToEmpreendimento) {
+          errors.push(`Linha ${index + 2}: Obra "${row.Obra}" não pertence ao empreendimento "${row.Empreendimento}". Cadastre a obra para este empreendimento.`);
+          return;
+        }
+
+        const disciplinaObj = findDisciplinaByName(row.Disciplina);
+        const disciplinaId = disciplinaObj?.id;
+        const prazo = disciplinaObj?.prazoMedioAnalise || 5;
+        const projetistaId = findIdByName(row.Projetista, projetistas);
         if (!disciplinaId) {
           errors.push(`Linha ${index + 2}: Disciplina "${row.Disciplina}" não encontrada`);
           return;
