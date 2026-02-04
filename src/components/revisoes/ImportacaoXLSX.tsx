@@ -233,6 +233,37 @@ export function ImportacaoXLSX({
           return;
         }
 
+        // Validação de Sequência de Revisão
+        // Buscar todas as revisões do mesmo grupo (banco + arquivo atual)
+        const revisoesDoGrupoNoBanco = revisoes.filter(r =>
+          r.empreendimentoId === empreendimentoId &&
+          r.obraId === obraId &&
+          r.disciplinaId === disciplinaId &&
+          r.projetistaId === projetistaId
+        );
+
+        const revisoesDoGrupoNoArquivo = newRevisoes.filter(r =>
+          r.empreendimentoId === empreendimentoId &&
+          r.obraId === obraId &&
+          r.disciplinaId === disciplinaId &&
+          r.projetistaId === projetistaId
+        );
+
+        // Combinar números de revisão do banco e do arquivo
+        const numerosBanco = revisoesDoGrupoNoBanco.map(r => r.numeroRevisao);
+        const numerosArquivo = revisoesDoGrupoNoArquivo.map(r => r.numeroRevisao);
+        const todosNumeros = [...numerosBanco, ...numerosArquivo];
+
+        // Encontrar o maior número de revisão existente
+        const maiorRevisaoExistente = todosNumeros.length > 0 ? Math.max(...todosNumeros) : 0;
+        const proximoEsperado = maiorRevisaoExistente + 1;
+
+        // A revisão deve ser exatamente o próximo número na sequência
+        if (numeroRevisao !== proximoEsperado) {
+          errors.push(`Linha ${index + 2}: Revisão R${numeroRevisao} não segue a sequência. A próxima revisão válida é R${proximoEsperado}.`);
+          return;
+        }
+
         const dtPrevistaEntrega = formatDateForInput(row['Dt. Prevista Entrega']);
         const dtEntrega = formatDateForInput(row['Dt. de Entrega']);
         const dtAnalise = formatDateForInput(row['Data de Análise']);
