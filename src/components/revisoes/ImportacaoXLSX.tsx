@@ -178,6 +178,17 @@ export function ImportacaoXLSX({
         return a._numeroRevisao - b._numeroRevisao;
       });
 
+      // DEBUG: Mostrar primeiras 10 linhas ordenadas
+      console.log('DEBUG sortedData (primeiras 10):', sortedData.slice(0, 10).map(r => ({
+        linha: r._originalLineNumber,
+        emp: r.Empreendimento,
+        obra: r.Obra,
+        disc: r.Disciplina,
+        proj: r.Projetista,
+        rev: r._numeroRevisao,
+        sortKey: r._sortKey
+      })));
+
       const newRevisoes: Revisao[] = [];
       const errors: string[] = [];
 
