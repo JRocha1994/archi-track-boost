@@ -152,9 +152,10 @@ function validateRevisionSequence(
   }
 
   // 2. Validação de Sequência
+  // Quando não há revisões no grupo, a primeira válida é 0
   const maxRev = grupo.length > 0
     ? Math.max(...grupo.map(r => r.numeroRevisao))
-    : 0;
+    : -1;
 
   const expected = maxRev + 1;
 

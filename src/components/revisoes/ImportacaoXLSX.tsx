@@ -200,9 +200,23 @@ export function ImportacaoXLSX({
 
         // Validação de campos obrigatórios feita mais abaixo após formatação das datas
 
-        const numeroRevisao = parseInt(row['Número da Revisão']);
-        if (isNaN(numeroRevisao)) {
-          errors.push(`Linha ${index + 2}: Número da revisão deve ser um inteiro válido`);
+        // Parser robusto para número da revisão (trata decimais do Excel como 1.0, 2.0)
+        const numeroRevisaoRaw = row['Número da Revisão'];
+        let numeroRevisao: number;
+
+        if (typeof numeroRevisaoRaw === 'number') {
+          // Se já for número, trunca decimais (1.0 -> 1, 2.5 -> 2)
+          numeroRevisao = Math.floor(numeroRevisaoRaw);
+        } else if (typeof numeroRevisaoRaw === 'string') {
+          // Remove espaços e tenta converter
+          const parsed = parseFloat(numeroRevisaoRaw.trim());
+          numeroRevisao = isNaN(parsed) ? NaN : Math.floor(parsed);
+        } else {
+          numeroRevisao = NaN;
+        }
+
+        if (isNaN(numeroRevisao) || numeroRevisao < 0) {
+          errors.push(`Linha ${index + 2}: Número da revisão deve ser um inteiro válido >= 0`);
           return;
         }
 
@@ -255,7 +269,8 @@ export function ImportacaoXLSX({
         const todosNumeros = [...numerosBanco, ...numerosArquivo];
 
         // Encontrar o maior número de revisão existente
-        const maiorRevisaoExistente = todosNumeros.length > 0 ? Math.max(...todosNumeros) : 0;
+        // Quando não há revisões no grupo, a primeira válida é 0
+        const maiorRevisaoExistente = todosNumeros.length > 0 ? Math.max(...todosNumeros) : -1;
         const proximoEsperado = maiorRevisaoExistente + 1;
 
         // A revisão deve ser exatamente o próximo número na sequência
@@ -282,7 +297,8 @@ export function ImportacaoXLSX({
           return;
         }
 
-        if (!numeroRevisao || !dtPrevistaEntrega) {
+        // Validação de campos obrigatórios (numeroRevisao pode ser 0, então usa typeof)
+        if (typeof numeroRevisao !== 'number' || isNaN(numeroRevisao) || !dtPrevistaEntrega) {
           errors.push(`Linha ${index + 2}: Campos obrigatórios faltando (Nro Revisão ou Dt Prevista Entrega)`);
           return;
         }
