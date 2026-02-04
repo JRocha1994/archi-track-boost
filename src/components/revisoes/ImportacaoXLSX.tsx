@@ -307,6 +307,18 @@ export function ImportacaoXLSX({
 
         // A revisão deve ser exatamente o próximo número na sequência
         if (numeroRevisao !== proximoEsperado) {
+          console.log('DEBUG sequência:', {
+            linha: lineNumber,
+            emp: row.Empreendimento,
+            obra: row.Obra,
+            disc: row.Disciplina,
+            proj: row.Projetista,
+            revTentando: numeroRevisao,
+            revEsperada: proximoEsperado,
+            revisoesNoBanco: numerosBanco,
+            revisoesNoArquivo: numerosArquivo,
+            todosNumeros: todosNumeros
+          });
           errors.push(`Linha ${lineNumber}: Revisão R${numeroRevisao} não segue a sequência. A próxima revisão válida é R${proximoEsperado}.`);
           return;
         }
