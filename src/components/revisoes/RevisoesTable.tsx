@@ -217,17 +217,51 @@ export function RevisoesTable({
     dataAnalise: {},
   });
 
-  // Estado de Ordenação
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  // Estado de Ordenação Multi-Coluna
+  const [sortConfig, setSortConfig] = useState<Array<{ key: string; direction: 'asc' | 'desc' }>>([]);
 
   const toggleSort = (key: string) => {
     setSortConfig(current => {
-      if (current?.key === key) {
-        if (current.direction === 'asc') return { key, direction: 'desc' };
-        return null; // Remove ordenação no terceiro clique
+      const existingIndex = current.findIndex(s => s.key === key);
+
+      if (existingIndex === -1) {
+        // Coluna não está ordenada: adiciona ao final (asc)
+        return [...current, { key, direction: 'asc' }];
       }
-      return { key, direction: 'asc' };
+
+      const existing = current[existingIndex];
+
+      if (existing.direction === 'asc') {
+        // Estava asc: muda para desc
+        const newConfig = [...current];
+        newConfig[existingIndex] = { key, direction: 'desc' };
+        return newConfig;
+      }
+
+      // Estava desc: remove a coluna do array
+      return current.filter(s => s.key !== key);
     });
+  };
+
+  // Função auxiliar para renderizar indicador de ordenação
+  const getSortIndicator = (key: string) => {
+    const index = sortConfig.findIndex(s => s.key === key);
+    if (index === -1) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 opacity-30" />;
+    }
+    const config = sortConfig[index];
+    return (
+      <span className="inline-flex items-center ml-1">
+        {config.direction === 'asc' ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : (
+          <ArrowDown className="h-3 w-3" />
+        )}
+        {sortConfig.length > 1 && (
+          <span className="ml-0.5 text-[10px] font-bold text-primary">{index + 1}</span>
+        )}
+      </span>
+    );
   };
 
   // Paginação
@@ -328,67 +362,50 @@ export function RevisoesTable({
     });
   }, [revisoes, filters, empreendimentos, obras, disciplinas, projetistas]);
 
-  // Aplicar Ordenação
+  // Aplicar Ordenação Multi-Coluna
   const sortedRevisoes = useMemo(() => {
-    if (!sortConfig) return filteredRevisoes;
+    if (sortConfig.length === 0) return filteredRevisoes;
+
+    // Função auxiliar para obter valor de uma coluna
+    const getValue = (revisao: Revisao, key: string): any => {
+      switch (key) {
+        case 'empreendimento':
+          return getNome(revisao.empreendimentoId, empreendimentos);
+        case 'obra':
+          return getNome(revisao.obraId, obras);
+        case 'disciplina':
+          return getNome(revisao.disciplinaId, disciplinas);
+        case 'projetista':
+          return getNome(revisao.projetistaId, projetistas);
+        case 'revisao':
+          return revisao.numeroRevisao;
+        case 'dtPrevistaEntrega':
+          return revisao.dataPrevistaEntrega;
+        case 'dtEntrega':
+          return revisao.dataEntrega || '';
+        case 'dtPrevistaAnalise':
+          return revisao.dataPrevistaAnalise || '';
+        case 'dtAnalise':
+          return revisao.dataAnalise || '';
+        case 'statusEntrega':
+          return revisao.statusEntrega || '';
+        case 'statusAnalise':
+          return revisao.statusAnalise || '';
+        default:
+          return '';
+      }
+    };
 
     const sorted = [...filteredRevisoes].sort((a, b) => {
-      let valA: any = '';
-      let valB: any = '';
+      // Percorrer todas as colunas de ordenação em ordem de prioridade
+      for (const config of sortConfig) {
+        const valA = getValue(a, config.key);
+        const valB = getValue(b, config.key);
 
-      // Resolver valores baseados na chave
-      switch (sortConfig.key) {
-        case 'empreendimento':
-          valA = getNome(a.empreendimentoId, empreendimentos);
-          valB = getNome(b.empreendimentoId, empreendimentos);
-          break;
-        case 'obra':
-          valA = getNome(a.obraId, obras);
-          valB = getNome(b.obraId, obras);
-          break;
-        case 'disciplina':
-          valA = getNome(a.disciplinaId, disciplinas);
-          valB = getNome(b.disciplinaId, disciplinas);
-          break;
-        case 'projetista':
-          valA = getNome(a.projetistaId, projetistas);
-          valB = getNome(b.projetistaId, projetistas);
-          break;
-        case 'revisao':
-          valA = a.numeroRevisao;
-          valB = b.numeroRevisao;
-          break;
-        case 'dtPrevistaEntrega':
-          valA = a.dataPrevistaEntrega;
-          valB = b.dataPrevistaEntrega;
-          break;
-        case 'dtEntrega':
-          valA = a.dataEntrega || '';
-          valB = b.dataEntrega || '';
-          break;
-        case 'dtPrevistaAnalise':
-          valA = a.dataPrevistaAnalise || '';
-          valB = b.dataPrevistaAnalise || '';
-          break;
-        case 'dtAnalise':
-          valA = a.dataAnalise || '';
-          valB = b.dataAnalise || '';
-          break;
-        case 'statusEntrega':
-          valA = a.statusEntrega || '';
-          valB = b.statusEntrega || '';
-          break;
-        case 'statusAnalise':
-          valA = a.statusAnalise || '';
-          valB = b.statusAnalise || '';
-          break;
-        default:
-          return 0;
+        if (valA < valB) return config.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return config.direction === 'asc' ? 1 : -1;
+        // Se iguais, continua para a próxima coluna
       }
-
-      // Comparação
-      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
       return 0;
     });
 
@@ -1054,10 +1071,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Empreendimento
-                    {sortConfig?.key === 'empreendimento' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'empreendimento' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('empreendimento')}
                   </Button>
                   <ColumnFilter
                     column="Empreendimento"
@@ -1075,10 +1089,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Obra
-                    {sortConfig?.key === 'obra' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'obra' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('obra')}
                   </Button>
                   <ColumnFilter
                     column="Obra"
@@ -1096,10 +1107,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Disciplina
-                    {sortConfig?.key === 'disciplina' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'disciplina' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('disciplina')}
                   </Button>
                   <ColumnFilter
                     column="Disciplina"
@@ -1117,10 +1125,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Projetista
-                    {sortConfig?.key === 'projetista' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'projetista' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('projetista')}
                   </Button>
                   <ColumnFilter
                     column="Projetista"
@@ -1138,10 +1143,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Revisão
-                    {sortConfig?.key === 'revisao' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'revisao' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('revisao')}
                   </Button>
                   <ColumnFilter
                     column="Revisão"
@@ -1159,10 +1161,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Dt. Prevista Entrega
-                    {sortConfig?.key === 'dtPrevistaEntrega' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'dtPrevistaEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('dtPrevistaEntrega')}
                   </Button>
                   <ColumnFilter
                     column="Dt. Prevista Entrega"
@@ -1183,10 +1182,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Dt. de Entrega
-                    {sortConfig?.key === 'dtEntrega' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'dtEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('dtEntrega')}
                   </Button>
                   <ColumnFilter
                     column="Dt. de Entrega"
@@ -1207,10 +1203,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Dt. Prevista p/Análise
-                    {sortConfig?.key === 'dtPrevistaAnalise' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'dtPrevistaAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('dtPrevistaAnalise')}
                   </Button>
                   <ColumnFilter
                     column="Dt. Prevista p/Análise"
@@ -1231,10 +1224,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Data Análise
-                    {sortConfig?.key === 'dtAnalise' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'dtAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('dtAnalise')}
                   </Button>
                   <ColumnFilter
                     column="Data Análise"
@@ -1255,10 +1245,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Status Entrega
-                    {sortConfig?.key === 'statusEntrega' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'statusEntrega' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('statusEntrega')}
                   </Button>
                   <ColumnFilter
                     column="Status Entrega"
@@ -1276,10 +1263,7 @@ export function RevisoesTable({
                     className="h-auto p-0 hover:bg-transparent font-medium"
                   >
                     Status Análise
-                    {sortConfig?.key === 'statusAnalise' && (
-                      sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />
-                    )}
-                    {sortConfig?.key !== 'statusAnalise' && <ArrowUpDown className="ml-2 h-3 w-3 opacity-30" />}
+                    {getSortIndicator('statusAnalise')}
                   </Button>
                   <ColumnFilter
                     column="Status Análise"

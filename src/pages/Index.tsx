@@ -66,6 +66,7 @@ export default function Index() {
           .from('revisoes')
           .select('*')
           .order('created_at', { ascending: true })
+          .order('id', { ascending: true }) // Ordenação secundária para paginação estável
           .range(from, from + pageSize - 1);
 
         if (error) throw error;
