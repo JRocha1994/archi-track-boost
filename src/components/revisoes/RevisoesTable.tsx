@@ -797,6 +797,81 @@ export function RevisoesTable({
     }
   };
 
+  // Função para salvar datas inline (Dt. de Entrega e Data Análise)
+  const handleInlineDateChange = async (
+    revisaoId: string,
+    field: 'dataEntrega' | 'dataAnalise',
+    value: string
+  ) => {
+    const revisao = revisoes.find(r => r.id === revisaoId);
+    if (!revisao) return;
+
+    try {
+      // Calcular valores derivados
+      const disciplinaAtual = disciplinas.find(d => d.id === revisao.disciplinaId);
+      const prazo = revisao.prazoMedioAnalise ?? disciplinaAtual?.prazoMedioAnalise ?? 5;
+
+      let updateData: any = {};
+      let newDataEntrega = revisao.dataEntrega;
+      let newDataAnalise = revisao.dataAnalise;
+      let newDataPrevistaAnalise = revisao.dataPrevistaAnalise;
+
+      if (field === 'dataEntrega') {
+        newDataEntrega = value || undefined;
+        newDataPrevistaAnalise = calcularDataPrevistaAnalise(value, prazo);
+        updateData = {
+          data_entrega: value || null,
+          data_prevista_analise: newDataPrevistaAnalise || null,
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        newDataAnalise = value || undefined;
+        updateData = {
+          data_analise: value || null,
+          updated_at: new Date().toISOString(),
+        };
+      }
+
+      // Calcular status
+      const statusEntrega = calcularStatusEntrega(revisao.dataPrevistaEntrega, newDataEntrega);
+      const statusAnalise = calcularStatusAnalise(newDataPrevistaAnalise, newDataAnalise);
+
+      updateData.status_analise = statusAnalise;
+
+      // Salvar no Supabase
+      const { error } = await supabase
+        .from('revisoes')
+        .update(updateData)
+        .eq('id', revisaoId);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      const updatedRevisoes = revisoes.map(r =>
+        r.id === revisaoId
+          ? {
+            ...r,
+            dataEntrega: newDataEntrega,
+            dataAnalise: newDataAnalise,
+            dataPrevistaAnalise: newDataPrevistaAnalise,
+            statusEntrega,
+            statusAnalise,
+          }
+          : r
+      );
+      setRevisoes(updatedRevisoes);
+
+      toast({ title: 'Data atualizada com sucesso' });
+    } catch (error: any) {
+      console.error('Erro ao atualizar data:', error);
+      toast({
+        title: 'Erro ao atualizar data',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleDuplicate = (revisao: Revisao) => {
     console.log('DEBUG handleDuplicate - revisão recebida:', {
       empreendimentoId: revisao.empreendimentoId,
@@ -1532,19 +1607,7 @@ export function RevisoesTable({
                         type="date"
                         className="h-8"
                         value={formatDateForInput(revisao.dataEntrega)}
-                        onChange={(e) => {
-                          const disc = disciplinas.find(d => d.id === revisao.disciplinaId);
-                          const prazo = disc?.prazoMedioAnalise || 5;
-                          const dataPrevistaAnalise = calcularDataPrevistaAnalise(e.target.value, prazo);
-                          const statusEntrega = calcularStatusEntrega(revisao.dataPrevistaEntrega, e.target.value);
-                          const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, revisao.dataAnalise);
-                          const updatedRevisoes = revisoes.map(r =>
-                            r.id === revisao.id
-                              ? { ...r, dataEntrega: e.target.value, dataPrevistaAnalise, statusEntrega, statusAnalise }
-                              : r
-                          );
-                          setRevisoes(updatedRevisoes);
-                        }}
+                        onChange={(e) => handleInlineDateChange(revisao.id, 'dataEntrega', e.target.value)}
                       />
                     )}
                   </TableCell>
@@ -1581,15 +1644,7 @@ export function RevisoesTable({
                         type="date"
                         className="h-8"
                         value={formatDateForInput(revisao.dataAnalise)}
-                        onChange={(e) => {
-                          const statusAnalise = calcularStatusAnalise(revisao.dataPrevistaAnalise, e.target.value);
-                          const updatedRevisoes = revisoes.map(r =>
-                            r.id === revisao.id
-                              ? { ...r, dataAnalise: e.target.value, statusAnalise }
-                              : r
-                          );
-                          setRevisoes(updatedRevisoes);
-                        }}
+                        onChange={(e) => handleInlineDateChange(revisao.id, 'dataAnalise', e.target.value)}
                       />
                     )}
                   </TableCell>
