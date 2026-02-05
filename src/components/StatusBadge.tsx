@@ -29,6 +29,11 @@ export function StatusBadge({ status, type }: StatusBadgeProps) {
       className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20',
       icon: AlertCircle,
     },
+    'sem-projeto': {
+      label: 'Sem projeto',
+      className: 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200',
+      icon: Clock,
+    },
   };
 
   const { label, className, icon: Icon } = config[status];

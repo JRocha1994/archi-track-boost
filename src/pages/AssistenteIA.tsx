@@ -339,7 +339,7 @@ export default function AssistenteIA() {
         }
         const dataPrevistaAnalise = calcularDataPrevistaAnalise(d.dataEntrega);
         const statusEntrega = calcularStatusEntrega(d.dataPrevistaEntrega!, d.dataEntrega);
-        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, d.dataAnalise);
+        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, d.dataAnalise, statusEntrega);
         return {
           empreendimento_id: d.empreendimentoId!,
           obra_id: d.obraId!,

@@ -201,8 +201,14 @@ export default function Indicadores() {
             dataAnalise: item.data_analise || undefined,
             justificativa: item.justificativa,
             justificativaRevisao: item.justificativa_revisao,
-            statusEntrega: calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega),
-            statusAnalise: calcularStatusAnalise(dataPrevistaAnalise, item.data_analise),
+            statusEntrega: (() => {
+              const se = calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega);
+              return se;
+            })(),
+            statusAnalise: (() => {
+              const se = calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega);
+              return calcularStatusAnalise(dataPrevistaAnalise, item.data_analise, se);
+            })(),
             createdAt: item.created_at,
           };
         });

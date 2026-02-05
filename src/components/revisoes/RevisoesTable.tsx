@@ -599,7 +599,7 @@ export function RevisoesTable({
 
     const dataPrevistaAnalise = calcularDataPrevistaAnalise(newRow.dataEntrega, prazo);
     const statusEntrega = calcularStatusEntrega(newRow.dataPrevistaEntrega!, newRow.dataEntrega);
-    const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, newRow.dataAnalise);
+    const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, newRow.dataAnalise, statusEntrega);
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -745,7 +745,8 @@ export function RevisoesTable({
     );
     const statusAnalise = calcularStatusAnalise(
       dataPrevistaAnalise,
-      editedRevisao.dataAnalise
+      editedRevisao.dataAnalise,
+      statusEntrega
     );
 
     try {
@@ -851,7 +852,7 @@ export function RevisoesTable({
 
       // Calcular status
       const statusEntrega = calcularStatusEntrega(revisao.dataPrevistaEntrega, newDataEntrega);
-      const statusAnalise = calcularStatusAnalise(newDataPrevistaAnalise, newDataAnalise);
+      const statusAnalise = calcularStatusAnalise(newDataPrevistaAnalise, newDataAnalise, statusEntrega);
 
       updateData.status_analise = statusAnalise;
 

@@ -7,7 +7,7 @@ import { ImportacaoXLSX } from '@/components/revisoes/ImportacaoXLSX';
 import type { Revisao, Empreendimento, Obra, Disciplina, Projetista } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { calcularStatusEntrega } from '@/lib/statusCalculator';
+import { calcularStatusEntrega, calcularStatusAnalise } from '@/lib/statusCalculator';
 
 export default function Index() {
   const [revisoes, setRevisoes] = useState<Revisao[]>([]);
@@ -130,7 +130,10 @@ export default function Index() {
         justificativa: item.justificativa,
         justificativaRevisao: item.justificativa_revisao || undefined,
         statusEntrega: calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega || undefined),
-        statusAnalise: item.status_analise,
+        statusAnalise: (() => {
+          const se = calcularStatusEntrega(item.data_prevista_entrega, item.data_entrega || undefined);
+          return calcularStatusAnalise(item.data_prevista_analise || undefined, item.data_analise || undefined, se);
+        })(),
         prazoMedioAnalise: item.prazo_medio_analise || undefined,
         createdAt: item.created_at,
       }));

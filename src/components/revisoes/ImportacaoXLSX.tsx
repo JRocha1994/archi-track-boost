@@ -349,7 +349,7 @@ export function ImportacaoXLSX({
 
         const dataPrevistaAnalise = calcularDataPrevistaAnalise(dtEntrega, prazo);
         const statusEntrega = calcularStatusEntrega(dtPrevistaEntrega, dtEntrega);
-        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, dtAnalise);
+        const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, dtAnalise, statusEntrega);
 
         newRevisoes.push({
           id: crypto.randomUUID(),

@@ -31,7 +31,16 @@ export function calcularStatusEntrega(dataPrevistaEntrega: string, dataEntrega?:
   return 'pendente';
 }
 
-export function calcularStatusAnalise(dataPrevistaAnalise?: string, dataAnalise?: string): StatusAnalise {
+export function calcularStatusAnalise(
+  dataPrevistaAnalise?: string,
+  dataAnalise?: string,
+  statusEntrega?: string
+): StatusAnalise {
+  // Se o projeto ainda não foi entregue (status pendente ou atrasado), não há análise a fazer
+  if (statusEntrega === 'pendente' || statusEntrega === 'atrasado') {
+    return 'sem-projeto';
+  }
+
   if (!dataPrevistaAnalise) return 'pendente';
   if (!dataAnalise) return 'pendente';
 

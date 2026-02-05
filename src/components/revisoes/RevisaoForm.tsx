@@ -65,7 +65,7 @@ export function RevisaoForm({
 
     const dataPrevistaAnalise = calcularDataPrevistaAnalise(formData.dataEntrega || undefined, prazoMedio);
     const statusEntrega = calcularStatusEntrega(formData.dataPrevistaEntrega, formData.dataEntrega || undefined);
-    const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, formData.dataAnalise || undefined);
+    const statusAnalise = calcularStatusAnalise(dataPrevistaAnalise, formData.dataAnalise || undefined, statusEntrega);
 
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
